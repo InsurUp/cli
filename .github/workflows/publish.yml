@@ -1,0 +1,93 @@
+name: Publish
+
+# Fires when a draft release (maintained by Release Drafter) is published.
+# Publishing the draft creates the tag; this workflow then ships everything.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  npm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Resolve version from tag
+        id: v
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Set package version to the release version
+        run: |
+          jq --arg v "${{ steps.v.outputs.VERSION }}" '.version = $v' package.json > pkg.tmp
+          mv pkg.tmp package.json
+
+      - run: bun install
+      - run: bun run build
+      - run: bun test
+
+      - name: Publish to npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Commit the version bump back to main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json bun.lock
+          git diff --staged --quiet || git commit -m "chore: release v${{ steps.v.outputs.VERSION }}"
+          git push origin HEAD:main
+
+  binaries:
+    needs: npm
+    runs-on: ubuntu-latest
+    env:
+      TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Resolve version from tag
+        id: v
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Set package version so the binary reports it
+        run: |
+          jq --arg v "${{ steps.v.outputs.VERSION }}" '.version = $v' package.json > pkg.tmp
+          mv pkg.tmp package.json
+
+      - run: bun install --frozen-lockfile
+
+      - name: Cross-compile standalone binaries
+        run: |
+          mkdir -p out
+          build() { bun build ./src/bin/insurup.ts --compile --target="$1" --outfile="out/$2"; }
+          build bun-darwin-arm64 insurup-darwin-arm64
+          build bun-darwin-x64   insurup-darwin-x64
+          build bun-linux-x64    insurup-linux-x64
+          build bun-linux-arm64  insurup-linux-arm64
+          build bun-windows-x64  insurup-windows-x64.exe
+          cd out && sha256sum insurup-* > SHA256SUMS
+
+      - name: Attach binaries to the release
+        run: gh release upload "${GITHUB_REF_NAME}" out/insurup-* out/SHA256SUMS --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Update the Homebrew tap
+        if: ${{ env.TAP_TOKEN != '' }}
+        run: bash packaging/homebrew/update-tap.sh "${{ steps.v.outputs.VERSION }}" out
+        env:
+          TAP_TOKEN: ${{ env.TAP_TOKEN }}

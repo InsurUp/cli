@@ -164,18 +164,25 @@ Tests use Bun's runner with an in-memory keychain and a mock OAuth + API server
 
 ## Deployment
 
-CI (`.github/workflows/ci.yml`) runs lint, typecheck, coverage, and a compile
-smoke check on every push/PR. Tagging `v*` triggers
-`.github/workflows/release.yml`:
+Releases are **draft-driven** (via [Release Drafter](https://github.com/release-drafter/release-drafter)):
 
-1. **npm** — publishes `@insurup/cli` (`bunx @insurup/cli`).
-2. **Binaries** — cross-compiles macOS/Linux/Windows standalone binaries and
-   attaches them (plus `SHA256SUMS`) to the GitHub Release.
-3. **Homebrew** — bumps the `InsurUp/homebrew-insurup` tap (optional; needs a tap
-   token). Formula reference in `packaging/homebrew/insurup.rb`.
+1. **CI** (`ci.yml`) runs lint, typecheck, coverage, and a compile smoke check on every push/PR.
+2. **Release Drafter** (`release-drafter.yml`) keeps a **draft GitHub Release** up to
+   date as PRs merge — the changelog and next version are derived from PR **labels**
+   (`feature`/`enhancement` → minor, `bug`/`fix`/`chore`/… → patch, `breaking` → major).
+3. **Publishing the draft** (in the GitHub Releases UI) creates the tag and triggers
+   `publish.yml`, which:
+   - bumps `package.json` to the release version and commits it back to `main`,
+   - **publishes `@insurup/cli` to npm** (`NPM_TOKEN`),
+   - cross-compiles macOS/Linux/Windows binaries + `SHA256SUMS` and attaches them, and
+   - updates the **`InsurUp/homebrew-insurup`** tap formula via
+     `packaging/homebrew/update-tap.sh` (when `HOMEBREW_TAP_TOKEN` is set).
 
-> macOS binaries are unsigned by default; add codesign/notarization to the
-> release workflow to avoid Gatekeeper prompts for end users.
+To cut a release: review the draft at **Releases → Draft**, then click **Publish**.
+
+> Required secret: `NPM_TOKEN`. Optional: `HOMEBREW_TAP_TOKEN` (a PAT with push
+> access to the tap). macOS binaries are unsigned by default; add
+> codesign/notarization to `publish.yml` to avoid Gatekeeper prompts.
 
 ## License
 
