@@ -14,13 +14,19 @@ let server: MockServer;
 beforeEach(() => {
   setSecretsBackend(memorySecrets({ 'com.insurup.cli m2m:default': 'secret' }));
   server = startMockServer();
-  // GraphQL-aware + NoContent-aware generic responder.
-  server.setApiHandler((req, url) => {
+  // GraphQL-aware + NoContent-aware generic responder. For GraphQL, echo an empty
+  // connection keyed by the query's actual root field (or alias) so every list
+  // endpoint — not just customers — resolves.
+  server.setApiHandler(async (req, url) => {
     if (url.pathname.endsWith('/graphql')) {
+      const body = (await req.json().catch(() => ({}))) as { query?: string };
+      const match = /\{\s*(?:([A-Za-z_]\w*)\s*:\s*)?([A-Za-z_]\w*)\s*[({]/.exec(body.query ?? '');
+      const root = match?.[1] ?? match?.[2] ?? 'data';
       return Response.json({
         data: {
-          customersNew: {
+          [root]: {
             edges: [],
+            nodes: [],
             pageInfo: {
               hasNextPage: false,
               hasPreviousPage: false,
@@ -57,6 +63,14 @@ const ok = (code: number | undefined) => code === undefined || code === 0;
 // One+ representative command per module — exercises each handler end-to-end.
 const commands: string[][] = [
   ['customers', 'list'],
+  ['customers', 'list', '--search', 'ada'],
+  ['policies', 'list'],
+  ['proposals', 'list'],
+  ['cases', 'list'],
+  ['agent-users', 'list'],
+  ['policies', 'transfers', 'list'],
+  ['policies', 'file-transfers', 'list'],
+  ['webhooks', 'deliveries', 'list'],
   ['customers', 'get', 'c1'],
   ['customers', 'me'],
   ['customers', 'create', '--data', '{"type":"INDIVIDUAL"}'],

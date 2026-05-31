@@ -19,14 +19,14 @@ function writeErr(ctx: LocalContext, text: string): void {
   ctx.process.stderr.write(text.endsWith('\n') ? text : `${text}\n`);
 }
 
-interface Connection {
+export interface Connection {
   readonly nodes: unknown[];
   readonly totalCount?: number;
   readonly pageInfo?: { readonly hasNextPage?: boolean; readonly endCursor?: string };
 }
 
 /** Detect a Relay-style GraphQL connection (`{ edges:[{node}] }` or `{ nodes }`). */
-function asConnection(data: unknown): Connection | null {
+export function asConnection(data: unknown): Connection | null {
   if (typeof data !== 'object' || data === null || Array.isArray(data)) return null;
   const obj = data as Record<string, unknown>;
   if (Array.isArray(obj.edges)) {

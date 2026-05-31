@@ -1,8 +1,26 @@
+import { QueryCaseModelMeta } from '@insurup/sdk';
 import { buildRouteMap } from '@stricli/core';
 import type { LocalContext } from '../context.ts';
 import { printSuccess } from '../output/print.ts';
 import { cmd0, cmd1 } from './_factory.ts';
-import { type DataFlags, dataFlag, readData, take } from './_shared.ts';
+import {
+  type DataFlags,
+  dataFlag,
+  type ListFlags,
+  listFlags,
+  readData,
+  runGraphqlList,
+  take,
+} from './_shared.ts';
+
+const list = cmd0<ListFlags>(
+  'List cases (GraphQL, cursor-paginated, searchable)',
+  listFlags,
+  (scope) =>
+    runGraphqlList(scope, QueryCaseModelMeta, (vars) =>
+      take(scope.client.cases.getCases(vars as Parameters<typeof scope.client.cases.getCases>[0])),
+    ),
+);
 
 const get = cmd1('Get a case by reference', 'Case ref', {}, ({ client }, ref) =>
   take(client.cases.getCaseByRef(ref)),
@@ -194,6 +212,7 @@ const analytics = buildRouteMap<string, LocalContext>({
 export const caseRoutes = buildRouteMap<string, LocalContext>({
   docs: { brief: 'Manage cases (sales, claims, complaints, endorsements)' },
   routes: {
+    list,
     get,
     activities,
     policies,

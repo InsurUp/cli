@@ -1,8 +1,30 @@
+import { QueryAgentUserResultMeta } from '@insurup/sdk';
 import { buildRouteMap } from '@stricli/core';
 import type { LocalContext } from '../context.ts';
 import { printSuccess } from '../output/print.ts';
 import { cmd0, cmd1 } from './_factory.ts';
-import { type DataFlags, dataFlag, readData, take } from './_shared.ts';
+import {
+  type DataFlags,
+  dataFlag,
+  type ListFlags,
+  listFlags,
+  readData,
+  runGraphqlList,
+  take,
+} from './_shared.ts';
+
+const list = cmd0<ListFlags>(
+  'List agent users (GraphQL, cursor-paginated, searchable)',
+  listFlags,
+  (scope) =>
+    runGraphqlList(scope, QueryAgentUserResultMeta, (vars) =>
+      take(
+        scope.client.agentUsers.getAgentUsers(
+          vars as Parameters<typeof scope.client.agentUsers.getAgentUsers>[0],
+        ),
+      ),
+    ),
+);
 
 const me = cmd0('Get the current agent user', {}, ({ client }) =>
   take(client.agentUsers.getMyAgentUser()),
@@ -120,6 +142,7 @@ const password = cmd0<DataFlags>(
 export const agentUserRoutes = buildRouteMap<string, LocalContext>({
   docs: { brief: 'Manage agent users (staff, invites, status)' },
   routes: {
+    list,
     me,
     'robot-code': robotCode,
     get,

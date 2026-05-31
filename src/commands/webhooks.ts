@@ -1,8 +1,17 @@
+import { QueryWebhookDeliveryResultMeta } from '@insurup/sdk';
 import { buildRouteMap } from '@stricli/core';
 import type { LocalContext } from '../context.ts';
 import { printSuccess } from '../output/print.ts';
 import { cmd0, cmd1, cmd2 } from './_factory.ts';
-import { type DataFlags, dataFlag, readData, take } from './_shared.ts';
+import {
+  type DataFlags,
+  dataFlag,
+  type ListFlags,
+  listFlags,
+  readData,
+  runGraphqlList,
+  take,
+} from './_shared.ts';
 
 const list = cmd0('List webhooks', {}, ({ client }) => take(client.webhooks.getWebhooks()));
 const get = cmd1('Get a webhook by id', 'Webhook id', {}, ({ client }, id) =>
@@ -52,9 +61,21 @@ const deliveryRedeliver = cmd2(
     printSuccess(ctx, flags, 'Redelivery requested');
   },
 );
+const deliveryList = cmd0<ListFlags>(
+  'List webhook deliveries (GraphQL, cursor-paginated)',
+  listFlags,
+  (scope) =>
+    runGraphqlList(scope, QueryWebhookDeliveryResultMeta, (vars) =>
+      take(
+        scope.client.webhooks.getWebhookDeliveries(
+          vars as Parameters<typeof scope.client.webhooks.getWebhookDeliveries>[0],
+        ),
+      ),
+    ),
+);
 const deliveries = buildRouteMap<string, LocalContext>({
   docs: { brief: 'Webhook deliveries' },
-  routes: { get: deliveryGet, redeliver: deliveryRedeliver },
+  routes: { list: deliveryList, get: deliveryGet, redeliver: deliveryRedeliver },
 });
 
 export const webhookRoutes = buildRouteMap<string, LocalContext>({

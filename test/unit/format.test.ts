@@ -14,7 +14,7 @@ describe('formatJson', () => {
 });
 
 describe('formatHuman', () => {
-  test('renders an array of objects as a table', () => {
+  test('renders an array of objects as key/value blocks (not a table)', () => {
     const out = formatHuman(
       [
         { id: 1, name: 'Ada' },
@@ -22,18 +22,22 @@ describe('formatHuman', () => {
       ],
       colors,
     );
-    const lines = out.split('\n');
-    expect(lines[0]).toContain('id');
-    expect(lines[0]).toContain('name');
-    expect(out).toContain('Ada');
-    expect(out).toContain('Bob');
-    expect(lines.length).toBe(4); // header + separator + 2 rows
+    // One indexed block per item, each field on its own line (keys are padded).
+    expect(out).toContain('── 1 ──');
+    expect(out).toContain('── 2 ──');
+    expect(out).toMatch(/id:\s+1/);
+    expect(out).toMatch(/name:\s+Ada/);
+    expect(out).toMatch(/id:\s+2/);
+    expect(out).toMatch(/name:\s+Bob/);
+    // Blocks are separated by a blank line; no shared single header row.
+    expect(out).toContain('\n\n');
   });
 
-  test('unions columns across heterogeneous rows', () => {
+  test('renders heterogeneous objects as separate key/value blocks', () => {
     const out = formatHuman([{ a: 1 }, { b: 2 }], colors);
-    expect(out.split('\n')[0]).toContain('a');
-    expect(out.split('\n')[0]).toContain('b');
+    expect(out).toContain('a:');
+    expect(out).toContain('b:');
+    expect(out).toContain('── 2 ──');
   });
 
   test('renders an array of primitives as lines', () => {

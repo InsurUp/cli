@@ -50,3 +50,42 @@ export function promptHidden(question: string): Promise<string> {
     stdin.on('data', onData);
   });
 }
+
+/**
+ * Ask a yes/no question on stdin (echoing input). Resolves the default on an
+ * empty line or EOF, and resolves `false` immediately when stdin is not a TTY
+ * so non-interactive callers (pipes, CI) simply stop rather than hang.
+ */
+export function confirm(question: string, opts: { default?: boolean } = {}): Promise<boolean> {
+  const fallback = opts.default ?? true;
+  return new Promise((resolve) => {
+    const stdin = process.stdin;
+    const stdout = process.stdout;
+    if (!stdin.isTTY) {
+      resolve(false);
+      return;
+    }
+
+    stdout.write(`${question} [${fallback ? 'Y/n' : 'y/N'}] `);
+    stdin.resume();
+    stdin.setEncoding('utf8');
+
+    const cleanup = (): void => {
+      stdin.pause();
+      stdin.removeListener('data', onData);
+      stdin.removeListener('end', onEnd);
+    };
+    const onData = (chunk: string): void => {
+      cleanup();
+      const answer = chunk.trim().toLowerCase();
+      resolve(answer === '' ? fallback : answer === 'y' || answer === 'yes');
+    };
+    const onEnd = (): void => {
+      cleanup();
+      resolve(fallback);
+    };
+
+    stdin.on('data', onData);
+    stdin.on('end', onEnd);
+  });
+}

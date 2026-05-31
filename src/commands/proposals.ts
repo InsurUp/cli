@@ -1,8 +1,30 @@
+import { QueryProposalsResultMeta } from '@insurup/sdk';
 import { buildRouteMap } from '@stricli/core';
 import type { LocalContext } from '../context.ts';
 import { printSuccess } from '../output/print.ts';
 import { cmd0, cmd1, cmd2 } from './_factory.ts';
-import { type DataFlags, dataFlag, readData, take } from './_shared.ts';
+import {
+  type DataFlags,
+  dataFlag,
+  type ListFlags,
+  listFlags,
+  readData,
+  runGraphqlList,
+  take,
+} from './_shared.ts';
+
+const list = cmd0<ListFlags>(
+  'List proposals (GraphQL, cursor-paginated, searchable)',
+  listFlags,
+  (scope) =>
+    runGraphqlList(scope, QueryProposalsResultMeta, (vars) =>
+      take(
+        scope.client.proposals.getProposals(
+          vars as Parameters<typeof scope.client.proposals.getProposals>[0],
+        ),
+      ),
+    ),
+);
 
 const get = cmd1('Get proposal detail by id', 'Proposal id', {}, ({ client }, id) =>
   take(client.proposals.getProposalDetail(id)),
@@ -145,6 +167,7 @@ const watch = cmd1(
 export const proposalRoutes = buildRouteMap<string, LocalContext>({
   docs: { brief: 'Manage proposals, purchasing, revisions, and live updates' },
   routes: {
+    list,
     get,
     create,
     coverage,
