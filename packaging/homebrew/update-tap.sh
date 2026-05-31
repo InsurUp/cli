@@ -24,8 +24,8 @@ git clone --depth 1 "https://x-access-token:${TAP_TOKEN}@github.com/${TAP_REPO}.
 mkdir -p "$workdir/Formula"
 
 base="https://github.com/InsurUp/cli/releases/download/v${VERSION}"
-cat > "$workdir/Formula/insurup.rb" <<RUBY
-class Insurup < Formula
+cat > "$workdir/Formula/cli.rb" <<RUBY
+class Cli < Formula
   desc "Command-line interface for the InsurUp insurance platform"
   homepage "https://github.com/InsurUp/cli"
   version "${VERSION}"
@@ -66,10 +66,10 @@ RUBY
 cd "$workdir"
 git config user.name "github-actions[bot]"
 git config user.email "github-actions[bot]@users.noreply.github.com"
-git add Formula/insurup.rb
+git add Formula/cli.rb
 if git diff --staged --quiet; then
   echo "Formula already up to date for ${VERSION}"
 else
-  git commit -m "insurup ${VERSION}"
+  git commit -m "cli ${VERSION}"
   git push
 fi

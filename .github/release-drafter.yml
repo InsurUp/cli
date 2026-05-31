@@ -30,7 +30,7 @@ template: |
 
   ```bash
   bunx @insurup/cli@$RESOLVED_VERSION --help          # npm (requires Bun)
-  brew install InsurUp/insurup/insurup                # Homebrew
+  brew install InsurUp/insurup/cli                # Homebrew
   ```
 
   Standalone binaries for macOS/Linux/Windows are attached below.
