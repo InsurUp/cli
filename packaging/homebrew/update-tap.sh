@@ -10,7 +10,7 @@ set -euo pipefail
 
 VERSION="${1:?version required (e.g. 0.1.1)}"
 OUT="${2:?binaries dir required}"
-TAP_REPO="${TAP_REPO:-InsurUp/homebrew-insurup}"
+TAP_REPO="${TAP_REPO:-InsurUp/homebrew-tap}"
 : "${TAP_TOKEN:?TAP_TOKEN required}"
 
 sha() { sha256sum "$OUT/$1" | cut -d' ' -f1; }
