@@ -34,6 +34,31 @@ describe('browserLogin', () => {
     expect(opened).toBe('https://auth/authorize');
   });
 
+  test('always requests PAR and forwards the iss parameter to the code exchange', async () => {
+    let authorizeUsePAR: boolean | undefined;
+    let exchangedIss: string | null | undefined;
+    const auth = fakeAuth({
+      getAuthorizeUrl: async (opts) => {
+        authorizeUsePAR = opts.usePAR;
+        return { url: 'https://auth/authorize', codeVerifier: 'v', state: 's' };
+      },
+      exchangeCode: async (opts) => {
+        exchangedIss = new URL(opts.callbackUrl).searchParams.get('iss');
+        return { isSuccess: true, kind: 'success', data: tokens } as never;
+      },
+    });
+    await browserLogin(auth, {
+      deps: {
+        open: async () => {},
+        startCallbackServer: fakeServer(
+          Promise.resolve({ code: 'c', state: 's', iss: 'https://auth.insurup.com/' }),
+        ),
+      },
+    });
+    expect(authorizeUsePAR).toBe(true);
+    expect(exchangedIss).toBe('https://auth.insurup.com/');
+  });
+
   test('does not open the browser when noBrowser is set', async () => {
     let opened = false;
     await browserLogin(fakeAuth(), {

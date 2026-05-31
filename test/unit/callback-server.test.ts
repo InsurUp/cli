@@ -2,14 +2,17 @@ import { describe, expect, test } from 'bun:test';
 import { startCallbackServer } from '../../src/auth/callback-server.ts';
 
 describe('startCallbackServer', () => {
-  test('resolves with the code + state and shows a success page', async () => {
+  test('resolves with the code, state + iss and shows a success page', async () => {
     const server = startCallbackServer();
-    const res = await fetch(`${server.redirectUri}?code=abc&state=xyz`);
+    const res = await fetch(
+      `${server.redirectUri}?code=abc&state=xyz&iss=${encodeURIComponent('https://auth.insurup.com/')}`,
+    );
     const html = await res.text();
     expect(html).toContain('successful');
     expect(await server.result).toEqual({
       code: 'abc',
       state: 'xyz',
+      iss: 'https://auth.insurup.com/',
       error: undefined,
       errorDescription: undefined,
     });
