@@ -112,6 +112,12 @@ describe('end-to-end command routing', () => {
     expect(JSON.parse(t.stderr()).error.message).toContain('client id');
   });
 
+  test('browser login rejects --save (M2M only)', async () => {
+    const t = await runCli(['auth', 'login', '--save', '--json']);
+    expect(t.exitCode()).toBe(2);
+    expect(JSON.parse(t.stderr()).error.message).toContain('--save');
+  });
+
   test('a successful API list prints data (json)', async () => {
     server.setApiHandler(() => Response.json([{ id: 'tr', name: 'Turkish' }]));
     const t = await runCli(['languages', 'list', '--json']);

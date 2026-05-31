@@ -76,7 +76,7 @@ export const loginCommand = buildCommand<LoginFlags, [], LocalContext>({
       clientSecret: { kind: 'parsed', parse: String, brief: 'M2M client secret', optional: true },
       save: {
         kind: 'boolean',
-        brief: 'Persist client id/secret + settings to this profile',
+        brief: 'M2M only: cache the client secret + persist client id/settings to this profile',
         default: false,
       },
     },
@@ -98,8 +98,20 @@ export const loginCommand = buildCommand<LoginFlags, [], LocalContext>({
         const clientSecret = await resolveSecret(this, flags, config);
         // OIDC-only scopes are invalid for the client-credentials grant.
         tokens = await m2mLogin(auth, { clientSecret, scopes: m2mScopes(scopes) });
-        if (flags.save) await setClientSecret(config.profile, clientSecret);
+        if (flags.save) {
+          await setClientSecret(config.profile, clientSecret);
+          await saveProfile(this, config);
+        }
       } else {
+        // `--save` persists the M2M client id/secret; it has no meaning for the
+        // browser flow (the public `cli` client is built in and tokens are always
+        // stored in the keychain), so reject it rather than silently doing nothing.
+        if (flags.save) {
+          throw new CliError(
+            '--save applies only to --m2m login; browser tokens are always saved to the keychain.',
+            EXIT.USAGE,
+          );
+        }
         // Browser login always uses the hardcoded public `cli` client (PKCE, no
         // secret); any configured M2M client id is irrelevant here.
         const auth = createAuth({ ...config, clientId: BROWSER_CLIENT_ID });
@@ -110,8 +122,6 @@ export const loginCommand = buildCommand<LoginFlags, [], LocalContext>({
           onAuthorizeUrl: (url) => printNote(this, flags, `Authorize at: ${url}`),
         });
       }
-
-      if (flags.save) await saveProfile(this, config);
 
       const requestedScopes = flags.m2m ? m2mScopes(scopes) : scopes;
       const summary = {

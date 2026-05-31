@@ -80,12 +80,11 @@ export INSURUP_CLIENT_SECRET=...
 insurup customers list --json
 ```
 
-`--save` persists *configuration*, not your session — your tokens are always
-stored in the OS keychain regardless. For **M2M** it caches the client secret in
-the keychain and writes the client id, auth server, and scopes to the active
-profile, so later logins (and on-demand M2M auto-login) need no flags. For
-**browser** login there is no secret and the client is built in, so `--save` only
-persists non-default `--auth-server` / `--base-url` / scopes to the profile.
+`--save` is **M2M-only**: it caches the client secret in the keychain and writes
+the client id, auth server, and scopes to the active profile, so later logins
+(and on-demand M2M auto-login) need no flags. It does not apply to browser login
+(passing it there is rejected) — browser tokens are always stored in the keychain
+regardless, and the public `cli` client is built in, so there is nothing to save.
 
 ### Commands
 
