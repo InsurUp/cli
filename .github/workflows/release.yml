@@ -1,0 +1,92 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run lint
+      - run: bun run typecheck
+      - run: bun test --coverage
+
+  binaries:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+
+      - name: Cross-compile standalone binaries
+        run: |
+          mkdir -p out
+          build() { # <bun-target> <output-name>
+            bun build ./src/bin/insurup.ts --compile --target="$1" --outfile="out/$2"
+          }
+          build bun-darwin-arm64  insurup-darwin-arm64
+          build bun-darwin-x64    insurup-darwin-x64
+          build bun-linux-x64     insurup-linux-x64
+          build bun-linux-arm64   insurup-linux-arm64
+          build bun-windows-x64   insurup-windows-x64.exe
+          cd out && for f in insurup-*; do sha256sum "$f" >> SHA256SUMS; done
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            out/insurup-*
+            out/SHA256SUMS
+          generate_release_notes: true
+
+  npm:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - name: Publish to npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # Optional: bump a Homebrew tap formula. Requires a `homebrew-insurup` tap repo
+  # and a HOMEBREW_TAP_TOKEN secret with push access. Skipped automatically when
+  # the secret is absent.
+  homebrew:
+    needs: binaries
+    runs-on: ubuntu-latest
+    # `secrets` is not allowed in `if`, so surface the token as an env var and
+    # gate on that — the job no-ops cleanly when the tap token is not configured.
+    env:
+      TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+    steps:
+      - name: Bump Homebrew formula
+        if: ${{ env.TAP_TOKEN != '' }}
+        uses: mislav/bump-homebrew-formula-action@v3
+        with:
+          formula-name: insurup
+          homebrew-tap: InsurUp/homebrew-insurup
+          download-url: https://github.com/InsurUp/cli/releases/download/${{ github.ref_name }}/insurup-darwin-arm64
+        env:
+          COMMITTER_TOKEN: ${{ env.TAP_TOKEN }}
