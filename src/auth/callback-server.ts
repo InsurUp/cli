@@ -7,6 +7,8 @@
 export interface CallbackResult {
   readonly code?: string;
   readonly state?: string;
+  /** RFC 9207 issuer identifier; forwarded to the token exchange for validation. */
+  readonly iss?: string;
   readonly error?: string;
   readonly errorDescription?: string;
 }
@@ -20,21 +22,88 @@ export interface CallbackServer {
   readonly stop: () => void;
 }
 
-function page(title: string, heading: string, body: string, accent: string): string {
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>
-    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;display:flex;
-    justify-content:center;align-items:center;height:100vh;margin:0;background:${accent}}
-    .card{text-align:center;background:#fff;padding:3rem;border-radius:16px;max-width:420px;
-    box-shadow:0 10px 40px rgba(0,0,0,.2)}h1{color:#1f2937;margin:0 0 .5rem;font-size:1.5rem}
-    p{color:#6b7280;margin:0}</style></head><body><div class="card"><h1>${heading}</h1><p>${body}</p></div></body></html>`;
+/**
+ * The InsurUp wordmark — the gradient (`#1BB3F3`→`#186CE6`) "U" mark plus the
+ * "InsurUp" lettering in black for light backgrounds. Inlined so the served
+ * pages are fully self-contained (no external asset requests on the loopback).
+ */
+const WORDMARK = `<svg class="logo" viewBox="0 0 527 124" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="InsurUp">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M100.883 6.58819L93.4132 34.4868C92.4379 38.1285 94.5959 41.075 98.2376 41.075H126.136C129.778 41.075 131.936 44.0216 130.961 47.6632L121.716 82.1605H87.2192C83.5776 82.1605 81.4196 79.2139 82.3948 75.5723L89.8649 47.6736C90.8402 44.0319 88.6821 41.0854 85.0405 41.0854H57.1418C53.5002 41.0854 51.3421 38.1389 52.3174 34.4972L61.5616 0H96.0588C99.7005 0 101.859 2.94653 100.883 6.58819ZM71.9989 70.3745L79.22 80.2412H79.2303C80.1433 81.4758 80.382 83.1462 79.9151 84.8996L69.6334 123.256H35.1361C31.4945 123.256 29.3365 120.31 30.3117 116.668L38.3317 86.7256C38.6691 85.4694 38.4663 84.33 37.8635 83.505L66.8736 69.5652C68.8864 68.6315 70.9614 68.9635 71.9989 70.3745ZM37.861 83.5016C37.8618 83.5027 37.8627 83.5039 37.8635 83.505L37.8544 83.5094L37.861 83.5016ZM37.861 83.5016C37.2588 82.6798 36.2592 82.171 35.0013 82.171H5.05873C1.41706 82.171 -0.740956 79.2244 0.234303 75.5828L9.46815 41.0959H47.8249C49.5679 41.0959 51.0619 41.7911 51.9646 43.0257L59.4761 53.2867C60.524 54.7288 60.2439 56.9387 58.7914 58.7129L37.861 83.5016Z" fill="url(#iu_grad)"/>
+<path d="M162.212 14.7914H175.184V86.1883H162.212V14.7914Z" fill="black"/>
+<path d="M186.427 37.1604H198.888V43.7996C201.204 41.0077 203.961 38.9649 207.162 37.6711C210.362 36.3092 213.733 35.6282 217.274 35.6282C223.879 35.6282 228.816 37.4327 232.084 41.0417C235.353 44.5826 236.987 49.3152 236.987 55.2394V86.1883H224.117V56.4651C224.117 49.3152 220.781 45.7403 214.108 45.7403C211.179 45.7403 208.422 46.4552 205.834 47.8852C203.246 49.2471 201.067 51.324 199.297 54.1159V86.1883H186.427V37.1604Z" fill="black"/>
+<path d="M266.848 87.7204C263.308 87.7204 259.528 87.3118 255.511 86.4947C251.493 85.6776 248.361 84.554 246.114 83.124V72.1949C248.769 73.8292 251.936 75.157 255.613 76.1784C259.29 77.1317 262.763 77.6084 266.031 77.6084C269.3 77.6084 271.683 77.336 273.181 76.7913C274.679 76.1784 275.428 75.0889 275.428 73.5227C275.428 72.297 275.02 71.3097 274.203 70.5606C273.454 69.7435 272.194 69.0285 270.423 68.4157C268.721 67.7347 266.065 66.9176 262.456 65.9643C258.371 64.8067 255.136 63.615 252.753 62.3893C250.438 61.1636 248.667 59.6315 247.442 57.7929C246.284 55.8863 245.705 53.4349 245.705 50.4388C245.705 45.536 247.646 41.8589 251.527 39.4075C255.409 36.888 260.652 35.6282 267.257 35.6282C270.662 35.6282 274.032 35.9687 277.369 36.6497C280.774 37.2625 283.429 38.1477 285.336 39.3053V49.8259C283.293 48.6002 280.808 47.6128 277.88 46.8638C274.952 46.1148 271.955 45.7403 268.891 45.7403C265.555 45.7403 263.035 46.0807 261.333 46.7617C259.63 47.3745 258.779 48.6002 258.779 50.4388C258.779 51.6645 259.222 52.6518 260.107 53.4009C261.06 54.0818 262.286 54.6947 263.784 55.2394C265.282 55.7161 268.006 56.4651 271.955 57.4865C276.177 58.6441 279.48 59.9039 281.863 61.2658C284.247 62.6276 285.949 64.2619 286.97 66.1685C287.992 68.0752 288.502 70.4585 288.502 73.3185C288.502 77.6765 286.63 81.1833 282.885 83.839C279.208 86.4266 273.862 87.7204 266.848 87.7204Z" fill="black"/>
+<path d="M316.9 87.7204C310.295 87.7204 305.358 85.9499 302.09 82.409C298.821 78.8 297.187 74.0334 297.187 68.1092V37.1604H310.057V66.8835C310.057 74.0334 313.393 77.6084 320.067 77.6084C322.995 77.6084 325.752 76.9274 328.34 75.5656C330.928 74.1356 333.107 72.0247 334.877 69.2328V37.1604H347.747V86.1883H335.286V79.5491C332.97 82.3409 330.213 84.4178 327.012 85.7797C323.812 87.0735 320.441 87.7204 316.9 87.7204Z" fill="black"/>
+<path d="M359.018 37.1604H371.48V45.0253C373.454 42.3696 376.246 40.3948 379.855 39.1011C383.532 37.8073 387.72 37.1604 392.419 37.1604V46.966C387.448 46.966 383.124 47.749 379.447 49.3152C375.838 50.8133 373.318 53.1966 371.888 56.4651V86.1883H359.018V37.1604Z" fill="black"/>
+<path d="M429.621 87.7204C419.543 87.7204 411.917 85.0988 406.742 79.8555C401.634 74.5442 399.081 67.3942 399.081 58.4058V14.7914H412.053V58.6101C412.053 64.2619 413.619 68.5859 416.751 71.582C419.952 74.5101 424.242 75.9741 429.621 75.9741C434.933 75.9741 439.154 74.5101 442.287 71.582C445.487 68.5859 447.087 64.2619 447.087 58.6101V14.7914H460.059V58.4058C460.059 67.3942 457.506 74.5442 452.399 79.8555C447.292 85.0988 439.699 87.7204 429.621 87.7204Z" fill="black"/>
+<path d="M468.787 37.1604H481.249V43.0846C483.904 40.5651 486.798 38.6925 489.931 37.4668C493.063 36.2411 496.638 35.6282 500.656 35.6282C505.626 35.6282 510.053 36.7178 513.934 38.8968C517.883 41.0077 520.948 44.0379 523.127 47.9874C525.374 51.8687 526.497 56.397 526.497 61.5722C526.497 66.6793 525.374 71.2075 523.127 75.157C520.948 79.1065 517.883 82.2048 513.934 84.4519C510.053 86.6309 505.626 87.7204 500.656 87.7204C496.91 87.7204 493.369 87.2097 490.033 86.1883C486.764 85.0988 483.972 83.4986 481.657 81.3876V108.557H468.787V37.1604ZM497.489 77.6084C502.12 77.6084 505.933 76.1103 508.929 73.1142C511.925 70.118 513.423 66.2707 513.423 61.5722C513.423 56.8737 511.925 53.0604 508.929 50.1323C505.933 47.2043 502.12 45.7403 497.489 45.7403C493.812 45.7403 490.544 46.7276 487.684 48.7024C484.824 50.6771 482.815 53.3328 481.657 56.6694V66.5771C482.747 69.9137 484.721 72.6035 487.581 74.6463C490.51 76.621 493.812 77.6084 497.489 77.6084Z" fill="black"/>
+<defs>
+<linearGradient id="iu_grad" x1="65.5975" y1="0" x2="65.5975" y2="123.256" gradientUnits="userSpaceOnUse">
+<stop stop-color="#1BB3F3"/>
+<stop offset="1" stop-color="#186CE6"/>
+</linearGradient>
+</defs>
+</svg>`;
+
+/** SVG glyphs for the page status badge (stroke uses `currentColor`). */
+const ICONS = {
+  success:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  error:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  waiting: '<span class="spinner"></span>',
+} as const;
+
+/** Escape user-controlled text (e.g. an OAuth `error`) before HTML interpolation. */
+function escapeHtml(text: string): string {
+  return text.replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c,
+  );
 }
 
-const SUCCESS = page(
-  'Authentication Successful',
-  'Authentication successful',
-  'You can close this window and return to the terminal.',
-  'linear-gradient(135deg,#667eea,#764ba2)',
-);
+/** Render a branded, self-contained status page (InsurUp gradient + wordmark). */
+function page(opts: {
+  title: string;
+  heading: string;
+  body: string;
+  kind: keyof typeof ICONS;
+}): string {
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>${opts.title}</title><style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;color:#0B1120;
+font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
+background:linear-gradient(135deg,#1BB3F3 0%,#186CE6 100%)}
+.card{width:100%;max-width:440px;background:#fff;border-radius:20px;padding:48px 40px;text-align:center;
+box-shadow:0 24px 64px rgba(11,17,32,.28);animation:rise .4s ease both}
+.logo{height:38px;width:auto;display:block;margin:0 auto 32px}
+.badge{width:64px;height:64px;border-radius:9999px;margin:0 auto 22px;display:flex;align-items:center;justify-content:center}
+.badge svg{width:30px;height:30px}
+.badge.success{background:rgba(24,108,230,.1);color:#186CE6}
+.badge.error{background:rgba(220,38,38,.1);color:#dc2626}
+.badge.waiting{background:rgba(24,108,230,.1)}
+.spinner{width:28px;height:28px;border-radius:9999px;border:3px solid rgba(24,108,230,.25);border-top-color:#186CE6;animation:spin .8s linear infinite}
+h1{margin:0 0 8px;font-size:1.35rem;font-weight:600;letter-spacing:-.025em}
+p{margin:0;color:#64748B;font-size:.95rem;line-height:1.55}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.card,.spinner{animation:none}}
+</style></head><body><div class="card">${WORDMARK}<div class="badge ${opts.kind}">${ICONS[opts.kind]}</div><h1>${opts.heading}</h1><p>${opts.body}</p></div></body></html>`;
+}
+
+const SUCCESS = page({
+  title: 'Authentication successful',
+  heading: 'Authentication successful',
+  body: 'You can close this window and return to the terminal.',
+  kind: 'success',
+});
+
+const WAITING = page({
+  title: 'Waiting for authentication',
+  heading: 'Waiting for authentication…',
+  body: 'Complete the sign-in in your browser to continue.',
+  kind: 'waiting',
+});
 
 /** Start the loopback callback server and begin awaiting the OAuth redirect. */
 export function startCallbackServer(port = 0): CallbackServer {
@@ -54,22 +123,21 @@ export function startCallbackServer(port = 0): CallbackServer {
       const error = url.searchParams.get('error') ?? undefined;
       const code = url.searchParams.get('code') ?? undefined;
       const state = url.searchParams.get('state') ?? undefined;
+      const iss = url.searchParams.get('iss') ?? undefined;
+      const errorDescription = url.searchParams.get('error_description') ?? undefined;
       if (error || code) {
-        resolve({
-          code,
-          state,
-          error,
-          errorDescription: url.searchParams.get('error_description') ?? undefined,
-        });
-        const heading = error ? 'Authentication failed' : 'Authentication successful';
+        resolve({ code, state, iss, error, errorDescription });
         const html = error
-          ? page('Authentication Failed', heading, error, 'linear-gradient(135deg,#ef4444,#dc2626)')
+          ? page({
+              title: 'Authentication failed',
+              heading: 'Authentication failed',
+              body: escapeHtml(errorDescription ?? error),
+              kind: 'error',
+            })
           : SUCCESS;
         return new Response(html, { headers: { 'Content-Type': 'text/html' } });
       }
-      return new Response('Waiting for authentication…', {
-        headers: { 'Content-Type': 'text/plain' },
-      });
+      return new Response(WAITING, { headers: { 'Content-Type': 'text/html' } });
     },
   });
 

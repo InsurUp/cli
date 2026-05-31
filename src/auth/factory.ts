@@ -5,7 +5,7 @@ import {
   type InsurUpScope,
   type TokenProvider,
 } from '@insurup/sdk';
-import type { ResolvedConfig } from '../config/config.ts';
+import { BROWSER_CLIENT_ID, type ResolvedConfig } from '../config/config.ts';
 import { VERSION } from '../version.ts';
 import { keychainTokenStorage } from './keychain-storage.ts';
 import { m2mScopes } from './m2m.ts';
@@ -23,7 +23,9 @@ export function createAuth(config: ResolvedConfig): InsurUpAuth {
     (url) => url?.startsWith('http://'),
   );
   return createInsurUpAuth({
-    clientId: config.clientId ?? '',
+    // Fall back to the public browser client when no confidential (M2M) client
+    // id is configured, so token refresh for a browser session always works.
+    clientId: config.clientId || BROWSER_CLIENT_ID,
     authServer: config.authServer,
     scopes: config.scopes as readonly InsurUpScope[],
     storage: keychainTokenStorage(config.profile),

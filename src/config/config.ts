@@ -9,6 +9,14 @@ type Env = Readonly<Partial<Record<string, string>>>;
 /** Default scopes requested when none are configured (mirrors the SDK demo). */
 export const DEFAULT_SCOPES = ['openid', 'profile', 'offline_access', 'core-api'] as const;
 
+/**
+ * The public, native OAuth client used for the interactive browser (authorization
+ * code + PKCE) flow. Hardcoded — it is a public client that carries no secret, so
+ * it is safe to ship. `--client-id` / `INSURUP_CLIENT_ID` are reserved for the
+ * confidential M2M client and are ignored by browser login.
+ */
+export const BROWSER_CLIENT_ID = 'cli';
+
 /** Per-profile, non-secret settings persisted to the config file. */
 export interface ProfileConfig {
   clientId?: string;

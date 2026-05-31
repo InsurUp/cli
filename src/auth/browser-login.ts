@@ -49,6 +49,11 @@ export async function browserLogin(
   try {
     const { url, codeVerifier, state } = await auth.getAuthorizeUrl({
       redirectUri: server.redirectUri,
+      // Always use Pushed Authorization Requests (RFC 9126): authorization
+      // parameters go to the server's PAR endpoint over a back-channel and the
+      // browser only ever sees a short one-shot `request_uri`. Requires the
+      // `cli` client to be granted the PAR endpoint server-side.
+      usePAR: true,
       ...(options.scopes ? { scopes: options.scopes } : {}),
     });
 
@@ -75,6 +80,10 @@ export async function browserLogin(
     const callbackUrl = new URL(server.redirectUri);
     callbackUrl.searchParams.set('code', callback.code);
     if (callback.state) callbackUrl.searchParams.set('state', callback.state);
+    // Forward the RFC 9207 issuer parameter so the SDK can validate it. The
+    // server advertises `authorization_response_iss_parameter_supported`, so
+    // dropping `iss` would make the exchange fail with "iss (issuer) missing".
+    if (callback.iss) callbackUrl.searchParams.set('iss', callback.iss);
 
     const exchange = await auth.exchangeCode({
       callbackUrl,
