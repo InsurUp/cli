@@ -1,0 +1,5 @@
+[test]
+# Exclude test files themselves from coverage accounting.
+coverageSkipTestFiles = true
+# Enforce coverage floors when running `bun test --coverage`.
+coverageThreshold = { line = 0.9, function = 0.9 }

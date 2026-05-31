@@ -1,0 +1,41 @@
+{
+  "name": "@insurup/cli",
+  "version": "0.1.0",
+  "description": "Comprehensive command-line interface for the InsurUp insurance platform.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "insurup": "./dist/bin/insurup.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "bun": ">=1.3.0"
+  },
+  "scripts": {
+    "dev": "bun run src/bin/insurup.ts",
+    "prepublishOnly": "bun run build",
+    "build": "bun build ./src/bin/insurup.ts --target=bun --outfile=dist/bin/insurup.js",
+    "compile": "bun build ./src/bin/insurup.ts --compile --outfile=dist/insurup",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "test:coverage": "bun test --coverage",
+    "lint": "biome check src test",
+    "lint:fix": "biome check --write src test",
+    "format": "biome format --write src test"
+  },
+  "dependencies": {
+    "@insurup/sdk": "^0.1.29",
+    "@stricli/core": "^1.2.7",
+    "open": "^11.0.0",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.0.0",
+    "@types/bun": "^1.3.14",
+    "typescript": "^5.7.0"
+  }
+}
