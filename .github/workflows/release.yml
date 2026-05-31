@@ -76,14 +76,17 @@ jobs:
   homebrew:
     needs: binaries
     runs-on: ubuntu-latest
-    if: ${{ needs.binaries.result == 'success' }}
+    # `secrets` is not allowed in `if`, so surface the token as an env var and
+    # gate on that — the job no-ops cleanly when the tap token is not configured.
+    env:
+      TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
     steps:
       - name: Bump Homebrew formula
-        if: ${{ secrets.HOMEBREW_TAP_TOKEN != '' }}
+        if: ${{ env.TAP_TOKEN != '' }}
         uses: mislav/bump-homebrew-formula-action@v3
         with:
           formula-name: insurup
           homebrew-tap: InsurUp/homebrew-insurup
           download-url: https://github.com/InsurUp/cli/releases/download/${{ github.ref_name }}/insurup-darwin-arm64
         env:
-          COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          COMMITTER_TOKEN: ${{ env.TAP_TOKEN }}
