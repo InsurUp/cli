@@ -1,0 +1,25 @@
+name: Release Drafter (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g. 0.2.0). Leave empty to auto-calculate from labels.'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  draft_release:
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: release-drafter/release-drafter@v6
+        with:
+          version: ${{ inputs.version || '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
