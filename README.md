@@ -29,7 +29,7 @@ curl -L https://github.com/InsurUp/cli/releases/latest/download/insurup-darwin-a
 chmod +x insurup && ./insurup --version
 
 # 3. Homebrew
-brew install InsurUp/insurup/cli
+brew install InsurUp/tap/cli
 ```
 
 > The npm package runs on **Bun** (it uses `Bun.secrets`/`Bun.serve`). For
@@ -175,7 +175,7 @@ Releases are **draft-driven** (via [Release Drafter](https://github.com/release-
    - bumps `package.json` to the release version and commits it back to `main`,
    - **publishes `@insurup/cli` to npm** (`NPM_TOKEN`),
    - cross-compiles macOS/Linux/Windows binaries + `SHA256SUMS` and attaches them, and
-   - updates the **`InsurUp/homebrew-insurup`** tap formula via
+   - updates the **`InsurUp/homebrew-tap`** tap formula via
      `packaging/homebrew/update-tap.sh` (when `HOMEBREW_TAP_TOKEN` is set).
 
 To cut a release: review the draft at **Releases → Draft**, then click **Publish**.
