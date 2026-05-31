@@ -29,7 +29,7 @@ curl -L https://github.com/InsurUp/cli/releases/latest/download/insurup-darwin-a
 chmod +x insurup && ./insurup --version
 
 # 3. Homebrew
-brew install InsurUp/insurup/insurup
+brew install InsurUp/insurup/cli
 ```
 
 > The npm package runs on **Bun** (it uses `Bun.secrets`/`Bun.serve`). For
