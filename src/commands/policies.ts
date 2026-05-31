@@ -1,8 +1,34 @@
+import {
+  QueryFilePolicyTransfersResultMeta,
+  QueryPoliciesResultMeta,
+  QueryPolicyTransfersResultMeta,
+} from '@insurup/sdk';
 import { buildRouteMap } from '@stricli/core';
 import type { LocalContext } from '../context.ts';
 import { printSuccess } from '../output/print.ts';
 import { cmd0, cmd1 } from './_factory.ts';
-import { type DataFlags, dataFlag, readData, take } from './_shared.ts';
+import {
+  type DataFlags,
+  dataFlag,
+  type ListFlags,
+  listFlags,
+  readData,
+  runGraphqlList,
+  take,
+} from './_shared.ts';
+
+const list = cmd0<ListFlags>(
+  'List policies (GraphQL, cursor-paginated, searchable)',
+  listFlags,
+  (scope) =>
+    runGraphqlList(scope, QueryPoliciesResultMeta, (vars) =>
+      take(
+        scope.client.policies.getPolicies(
+          vars as Parameters<typeof scope.client.policies.getPolicies>[0],
+        ),
+      ),
+    ),
+);
 
 const get = cmd1('Get policy detail by id', 'Policy id', {}, ({ client }, policyId) =>
   take(client.policies.getPolicyDetail({ policyId })),
@@ -110,9 +136,43 @@ const transferTrigger = cmd0<DataFlags>(
     printSuccess(ctx, flags, 'Transfer triggered');
   },
 );
+const transferList = cmd0<ListFlags>(
+  'List policy transfers (GraphQL, cursor-paginated, searchable)',
+  listFlags,
+  (scope) =>
+    runGraphqlList(scope, QueryPolicyTransfersResultMeta, (vars) =>
+      take(
+        scope.client.policies.getPolicyTransfers(
+          vars as Parameters<typeof scope.client.policies.getPolicyTransfers>[0],
+        ),
+      ),
+    ),
+);
 const transfers = buildRouteMap<string, LocalContext>({
   docs: { brief: 'Policy transfers' },
-  routes: { get: transferGet, create: transferCreate, trigger: transferTrigger },
+  routes: {
+    list: transferList,
+    get: transferGet,
+    create: transferCreate,
+    trigger: transferTrigger,
+  },
+});
+
+const fileTransferList = cmd0<ListFlags>(
+  'List file-based policy transfers (GraphQL, cursor-paginated, searchable)',
+  listFlags,
+  (scope) =>
+    runGraphqlList(scope, QueryFilePolicyTransfersResultMeta, (vars) =>
+      take(
+        scope.client.policies.getFilePolicyTransfers(
+          vars as Parameters<typeof scope.client.policies.getFilePolicyTransfers>[0],
+        ),
+      ),
+    ),
+);
+const fileTransfers = buildRouteMap<string, LocalContext>({
+  docs: { brief: 'File-based policy transfers' },
+  routes: { list: fileTransferList },
 });
 
 // Analytics
@@ -175,6 +235,7 @@ const analytics = buildRouteMap<string, LocalContext>({
 export const policyRoutes = buildRouteMap<string, LocalContext>({
   docs: { brief: 'Manage policies, documents, transfers, and analytics' },
   routes: {
+    list,
     get,
     document,
     'send-document': sendDocument,
@@ -183,6 +244,7 @@ export const policyRoutes = buildRouteMap<string, LocalContext>({
     'create-manual': createManual,
     'update-manual': updateManual,
     transfers,
+    'file-transfers': fileTransfers,
     analytics,
   },
 });

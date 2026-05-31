@@ -125,13 +125,38 @@ insurup customers create --data '{"type":"INDIVIDUAL","fullName":"Jane Doe"}'
 insurup customers create --data @customer.json
 echo '{"type":"INDIVIDUAL"}' | insurup customers create --data -
 
-# Pagination (cursor-based)
-insurup customers list --first 20
-insurup customers list --first 20 --after <cursor>
-
 # Live proposal updates over SignalR (until Ctrl-C)
 insurup proposals watch <proposal-id> --json
 ```
+
+### Listing, search & pagination
+
+GraphQL-backed lists are cursor-paginated, searchable, and render each item as a
+key/value block (use `--json` for machine output):
+
+```bash
+# Page size (default 20, max 100). Interactive in a TTY: prints a page, then
+# asks "Show more?" and follows the cursor until you decline.
+insurup customers list --first 50
+
+# Free-text search across the entity's searchable fields (server-side).
+insurup customers list --search "jane"
+
+# Non-interactive / piped / --json prints one page; the next cursor is hinted
+# on stderr so scripts can page manually with --after.
+insurup policies list --json
+insurup policies list --first 20 --after <cursor> --json
+```
+
+GraphQL lists with pagination + `--search`: `customers list` · `policies list` ·
+`proposals list` · `cases list` · `agent-users list` · `policies transfers list` ·
+`policies file-transfers list` · `webhooks deliveries list`. Other modules'
+`list` verbs (e.g. `languages`, `webhooks`, `agent-branches`) return plain
+collections without search/pagination.
+
+> `--search` matches across each entity's searchable fields (server-side).
+> Verified end-to-end against `@insurup/sdk` ≥ 0.1.31 (earlier 0.1.30 returned
+> HTTP 400 on four of these lists and errored on `cases` search — fixed upstream).
 
 ### Modules
 

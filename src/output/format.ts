@@ -24,27 +24,6 @@ function truncate(s: string): string {
   return flat.length > MAX_CELL ? `${flat.slice(0, MAX_CELL - 1)}…` : flat;
 }
 
-/** Format an array of objects as an aligned text table. */
-function formatTable(rows: ReadonlyArray<Record<string, unknown>>, colors: Colors): string {
-  const columns: string[] = [];
-  for (const row of rows) {
-    for (const key of Object.keys(row)) {
-      if (!columns.includes(key)) columns.push(key);
-    }
-  }
-  if (columns.length === 0) return `${rows.length} item(s)`;
-
-  const widths = columns.map((col) =>
-    Math.max(col.length, ...rows.map((r) => cell(r[col]).length)),
-  );
-  const renderRow = (values: string[]) => values.map((v, i) => v.padEnd(widths[i] ?? 0)).join('  ');
-
-  const header = colors.bold(renderRow(columns));
-  const separator = colors.dim(widths.map((w) => '─'.repeat(w)).join('  '));
-  const body = rows.map((r) => renderRow(columns.map((c) => cell(r[c]))));
-  return [header, separator, ...body].join('\n');
-}
-
 /** Format a single object as an aligned key/value block. */
 function formatRecord(obj: Record<string, unknown>, colors: Colors): string {
   const keys = Object.keys(obj);
@@ -54,14 +33,31 @@ function formatRecord(obj: Record<string, unknown>, colors: Colors): string {
 }
 
 /**
- * Format a value for human consumption: arrays of objects become tables, single
- * objects become key/value blocks, primitives render as-is.
+ * Format a list of items as key/value blocks, one per item, each under a dim
+ * `── n ──` header and separated by a blank line. Friendlier to read than a
+ * table for records with many (or wide) fields.
+ */
+export function formatRecords(items: ReadonlyArray<unknown>, colors: Colors): string {
+  if (items.length === 0) return colors.dim('(no results)');
+  return items
+    .map((item, i) => {
+      const header = colors.dim(`── ${i + 1} ──`);
+      const body = isPlainObject(item) ? formatRecord(item, colors) : cell(item);
+      return `${header}\n${body}`;
+    })
+    .join('\n\n');
+}
+
+/**
+ * Format a value for human consumption: arrays of objects become key/value
+ * blocks (one per item), single objects become a key/value block, primitives
+ * render as-is.
  */
 export function formatHuman(value: unknown, colors: Colors): string {
   if (value === null || value === undefined) return '';
   if (Array.isArray(value)) {
     if (value.length === 0) return colors.dim('(no results)');
-    if (value.every(isPlainObject)) return formatTable(value as Record<string, unknown>[], colors);
+    if (value.every(isPlainObject)) return formatRecords(value, colors);
     return value.map((v) => cell(v)).join('\n');
   }
   if (isPlainObject(value)) return formatRecord(value, colors);

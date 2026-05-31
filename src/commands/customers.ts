@@ -1,18 +1,28 @@
+import { QueryCustomerModelMeta } from '@insurup/sdk';
 import { buildRouteMap } from '@stricli/core';
 import type { LocalContext } from '../context.ts';
 import { printSuccess } from '../output/print.ts';
 import { cmd0, cmd1 } from './_factory.ts';
-import { type DataFlags, dataFlag, type PageFlags, pageFlags, readData, take } from './_shared.ts';
+import {
+  type DataFlags,
+  dataFlag,
+  type ListFlags,
+  listFlags,
+  readData,
+  runGraphqlList,
+  take,
+} from './_shared.ts';
 
-const list = cmd0<PageFlags>(
-  'List customers (GraphQL, cursor-paginated)',
-  pageFlags,
-  ({ client, flags }) =>
-    take(
-      client.customers.getCustomers({
-        ...(flags.first !== undefined ? { first: flags.first } : {}),
-        ...(flags.after !== undefined ? { after: flags.after } : {}),
-      }),
+const list = cmd0<ListFlags>(
+  'List customers (GraphQL, cursor-paginated, searchable)',
+  listFlags,
+  (scope) =>
+    runGraphqlList(scope, QueryCustomerModelMeta, (vars) =>
+      take(
+        scope.client.customers.getCustomers(
+          vars as Parameters<typeof scope.client.customers.getCustomers>[0],
+        ),
+      ),
     ),
 );
 
