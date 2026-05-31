@@ -5,7 +5,7 @@
     "": {
       "name": "@insurup/cli",
       "dependencies": {
-        "@insurup/sdk": "^0.1.29",
+        "@insurup/sdk": "^0.1.30",
         "@stricli/core": "^1.2.7",
         "open": "^11.0.0",
         "picocolors": "^1.1.1",
@@ -36,9 +36,9 @@
 
     "@biomejs/cli-win32-x64": ["@biomejs/cli-win32-x64@2.4.16", "", { "os": "win32", "cpu": "x64" }, "sha512-Kp85jgoBHa05gix6UIRjfCDiUV3w/8VIdZ247VyyO2gEjaw12WEVhdIjlxp/AMzXxqxQwbxNTDVZ3Mwd2RG5rw=="],
 
-    "@insurup/contracts": ["@insurup/contracts@0.1.29", "", {}, "sha512-ZjycPidonNupzm4+q4BMWErKw85Okzexz4DxklmZgR9TBLbi+kaYAZomEvlVhymEKq/HTRJdl995yhaCyyn8zQ=="],
+    "@insurup/contracts": ["@insurup/contracts@0.1.30", "", {}, "sha512-Dy/si/DkBeqpdOfc4WEJw46KLFctgjJQw56UMUgrBSElz1JZOlMc97LWlXgBdnEMqd/wWhTXT6DzB0udzJEL1w=="],
 
-    "@insurup/sdk": ["@insurup/sdk@0.1.29", "", { "dependencies": { "@insurup/contracts": "0.1.29", "@microsoft/signalr": "^10.0.0", "oauth4webapi": "^3.8.6" } }, "sha512-MHzUHPX/JFtIaUMFCVmnwYDSwjoecFjGovLZfBV3scc/MKhbbH8kuJj+o5698dY0E3+VraRNwqEJoQym+blAsQ=="],
+    "@insurup/sdk": ["@insurup/sdk@0.1.30", "", { "dependencies": { "@insurup/contracts": "0.1.30", "@microsoft/signalr": "^10.0.0", "oauth4webapi": "^3.8.6" } }, "sha512-VYF0Q2mnTjina2AbNcXWT4n/lsJol4ANzn4N2jxovLjcPhzAKLxL/h5ddnHNbhHjGxS6oc9n1TX3TsrY5EQroA=="],
 
     "@microsoft/signalr": ["@microsoft/signalr@10.0.0", "", { "dependencies": { "abort-controller": "^3.0.0", "eventsource": "^2.0.2", "fetch-cookie": "^2.0.3", "node-fetch": "^2.6.7", "ws": "^7.5.10" } }, "sha512-0BRqz/uCx3JdrOqiqgFhih/+hfTERaUfCZXFB52uMaZJrKaPRzHzMuqVsJC/V3pt7NozcNXGspjKiQEK+X7P2w=="],
 
