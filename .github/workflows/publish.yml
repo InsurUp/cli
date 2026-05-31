@@ -22,6 +22,13 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
+      # Shares the dependency cache with CI (same key).
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: ${{ runner.os }}-bun-
+
       - name: Resolve version from tag
         id: v
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
@@ -58,6 +65,14 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      # Distinct key from CI so the downloaded cross-compile runtimes
+      # (~/.bun/install/cache/bun-<target>-v<ver>) get saved and reused.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-compile-${{ hashFiles('bun.lock') }}
+          restore-keys: ${{ runner.os }}-bun-compile-
 
       - name: Resolve version from tag
         id: v
