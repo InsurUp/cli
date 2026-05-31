@@ -1,0 +1,33 @@
+version: 2
+updates:
+  # Bun dependencies (package.json + bun.lock). GA since Feb 2025; requires the
+  # text-based bun.lock (Bun >= 1.1.39), which this repo uses.
+  - package-ecosystem: "bun"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # Batch minor + patch bumps into one PR; majors get their own for review.
+      bun-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  # GitHub Actions versions referenced in .github/workflows.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "ci"
+    commit-message:
+      prefix: "ci(deps)"
+    groups:
+      actions:
+        patterns: ["*"]
