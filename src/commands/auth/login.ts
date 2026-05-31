@@ -3,7 +3,7 @@ import { buildCommand } from '@stricli/core';
 import { browserLogin } from '../../auth/browser-login.ts';
 import { createAuth } from '../../auth/factory.ts';
 import { getClientSecret, setClientSecret } from '../../auth/keychain-storage.ts';
-import { m2mLogin } from '../../auth/m2m.ts';
+import { m2mLogin, m2mScopes } from '../../auth/m2m.ts';
 import { type ResolvedConfig, readConfigFile, writeConfigFile } from '../../config/config.ts';
 import type { LocalContext } from '../../context.ts';
 import { printData, printNote, printSuccess, runCommand } from '../../output/print.ts';
@@ -91,7 +91,8 @@ export const loginCommand = buildCommand<LoginFlags, [], LocalContext>({
 
       if (flags.m2m) {
         const clientSecret = await resolveSecret(this, flags, config);
-        tokens = await m2mLogin(auth, { clientSecret, scopes });
+        // OIDC-only scopes are invalid for the client-credentials grant.
+        tokens = await m2mLogin(auth, { clientSecret, scopes: m2mScopes(scopes) });
         if (flags.save) await setClientSecret(config.profile, clientSecret);
       } else {
         printNote(this, flags, 'Opening browser for sign-in…');
@@ -104,12 +105,13 @@ export const loginCommand = buildCommand<LoginFlags, [], LocalContext>({
 
       if (flags.save) await saveProfile(this, config);
 
+      const requestedScopes = flags.m2m ? m2mScopes(scopes) : scopes;
       const summary = {
         ok: true,
         profile: config.profile,
         flow: flags.m2m ? 'client_credentials' : 'authorization_code',
         expiresAt: tokens.expiresAt ? new Date(tokens.expiresAt).toISOString() : undefined,
-        scopes: tokens.scope?.split(' ') ?? [...config.scopes],
+        scopes: tokens.scope?.split(' ') ?? [...requestedScopes],
       };
       if (flags.json) printData(this, flags, summary);
       else printSuccess(this, flags, `Logged in to profile "${config.profile}"`);

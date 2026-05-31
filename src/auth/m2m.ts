@@ -7,6 +7,14 @@ export interface M2MLoginOptions {
   readonly scopes?: readonly InsurUpScope[];
 }
 
+/** OIDC/interactive-only scopes that a client-credentials (M2M) client must not request. */
+const OIDC_ONLY_SCOPES = new Set(['openid', 'profile', 'email', 'roles', 'offline_access']);
+
+/** Drop OIDC-only scopes, which are invalid for the client-credentials grant. */
+export function m2mScopes(scopes: readonly InsurUpScope[]): readonly InsurUpScope[] {
+  return scopes.filter((s) => !OIDC_ONLY_SCOPES.has(s));
+}
+
 /**
  * Perform the client-credentials (machine-to-machine) grant and return the
  * acquired tokens. The SDK persists them via the auth handle's storage.

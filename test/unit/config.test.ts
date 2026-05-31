@@ -87,6 +87,7 @@ describe('resolveConfig precedence', () => {
   test('resolves the selected profile’s settings', () => {
     const cfg = resolveConfig({
       flags: { ...baseFlags, profile: 'staging' },
+      env: {},
       file: {
         profiles: {
           default: { clientId: 'd' },

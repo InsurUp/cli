@@ -8,6 +8,7 @@ import {
 import type { ResolvedConfig } from '../config/config.ts';
 import { VERSION } from '../version.ts';
 import { keychainTokenStorage } from './keychain-storage.ts';
+import { m2mScopes } from './m2m.ts';
 
 /**
  * Build the SDK auth handle for a profile, backed by keychain token storage.
@@ -50,7 +51,7 @@ export function buildTokenProvider(
     if (clientSecret) {
       const result = await auth.loginWithClientCredentials({
         clientSecret,
-        scopes: config.scopes as readonly InsurUpScope[],
+        scopes: m2mScopes(config.scopes as readonly InsurUpScope[]),
       });
       if (result.isSuccess) return result.data.accessToken;
     }
