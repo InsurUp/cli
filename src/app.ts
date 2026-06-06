@@ -13,6 +13,7 @@ import { insuranceRoutes } from './commands/insurance.ts';
 import { languageRoutes } from './commands/languages.ts';
 import { oauthClientRoutes } from './commands/oauthClients.ts';
 import { pingCommand } from './commands/ping.ts';
+import { pluginRoutes } from './commands/plugins.ts';
 import { policyRoutes } from './commands/policies.ts';
 import { propertyRoutes } from './commands/properties.ts';
 import { proposalRoutes } from './commands/proposals.ts';
@@ -46,6 +47,7 @@ const root = buildRouteMap<string, LocalContext>({
     languages: languageRoutes,
     files: fileRoutes,
     webhooks: webhookRoutes,
+    plugins: pluginRoutes,
     ping: pingCommand,
   },
 });
