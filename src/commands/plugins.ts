@@ -1,4 +1,5 @@
 import { basename } from 'node:path';
+import type { PluginHook } from '@insurup/sdk';
 import {
   buildCommand,
   buildRouteMap,
@@ -179,7 +180,7 @@ const logs = cmd1<LogsFlags>(
     take(
       client.plugins.getPluginLogs(id, {
         ...(flags.limit !== undefined ? { limit: flags.limit } : {}),
-        ...(flags.hook !== undefined ? { hookName: flags.hook } : {}),
+        ...(flags.hook !== undefined ? { hook: flags.hook as PluginHook } : {}),
       }),
     ),
 );
@@ -203,6 +204,16 @@ const disable = cmd1('Disable a plugin', 'Plugin id', {}, async ({ client, ctx, 
   await take(client.plugins.disablePlugin(id));
   printSuccess(ctx, flags, `Disabled ${id}`);
 });
+
+const remove = cmd1(
+  'Remove a plugin and all of its versions (cannot be undone)',
+  'Plugin id',
+  {},
+  async ({ client, ctx, flags }, id) => {
+    await take(client.plugins.deletePlugin(id));
+    printSuccess(ctx, flags, `Removed ${id}`);
+  },
+);
 
 const config = cmd1<DataFlags>(
   'Set a plugin’s config (body via --data: inline JSON, @file.json, or - for stdin)',
@@ -337,6 +348,7 @@ export const pluginRoutes = buildRouteMap<string, LocalContext>({
     activate,
     enable,
     disable,
+    remove,
     config,
     priority,
   },
