@@ -1,6 +1,6 @@
 {
   "name": "@insurup/cli",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Comprehensive command-line interface for the InsurUp insurance platform.",
   "type": "module",
   "license": "MIT",
