@@ -5,8 +5,9 @@
     "": {
       "name": "@insurup/cli",
       "dependencies": {
-        "@insurup/sdk": "^0.1.31",
+        "@insurup/sdk": "^0.1.35",
         "@stricli/core": "^1.2.7",
+        "fflate": "^0.8.3",
         "open": "^11.0.0",
         "picocolors": "^1.1.1",
       },
@@ -36,9 +37,9 @@
 
     "@biomejs/cli-win32-x64": ["@biomejs/cli-win32-x64@2.4.16", "", { "os": "win32", "cpu": "x64" }, "sha512-Kp85jgoBHa05gix6UIRjfCDiUV3w/8VIdZ247VyyO2gEjaw12WEVhdIjlxp/AMzXxqxQwbxNTDVZ3Mwd2RG5rw=="],
 
-    "@insurup/contracts": ["@insurup/contracts@0.1.31", "", {}, "sha512-+JdWgGGYLlRBiQtt/aObyU+SUGzsZSjJtJnDDWYbgCcXV5rg5uqlqEljaUUN554o+qgo/7yuMAauiWmL732ThQ=="],
+    "@insurup/contracts": ["@insurup/contracts@0.1.35", "", {}, "sha512-MemUPTkpOX6GrVgIPkZIObZWBQhusR+X6VlY2ejMERf8ETKnajSi51z3IGFyVAKDBaSSkNGDTkFwDlX7bOagVw=="],
 
-    "@insurup/sdk": ["@insurup/sdk@0.1.31", "", { "dependencies": { "@insurup/contracts": "0.1.31", "@microsoft/signalr": "^10.0.0", "oauth4webapi": "^3.8.6" } }, "sha512-NPzjMPkUi2nMjnlzzvgYnZRxpJZ/vrGghWGWye/cw7aMg5m3J3kOpovqId1kU81gBis/R+6/nXLxEQz+GUx93w=="],
+    "@insurup/sdk": ["@insurup/sdk@0.1.35", "", { "dependencies": { "@insurup/contracts": "0.1.35", "@microsoft/signalr": "^10.0.0", "oauth4webapi": "^3.8.6" } }, "sha512-/WeFGjDc0AvZoxyWWtLD+4PIBC8LMF71zz5j5uhZENyd37vPO3gXwaIQ1wLaOD1OLybnmqQfkEKBWQXaTn5MNQ=="],
 
     "@microsoft/signalr": ["@microsoft/signalr@10.0.0", "", { "dependencies": { "abort-controller": "^3.0.0", "eventsource": "^2.0.2", "fetch-cookie": "^2.0.3", "node-fetch": "^2.6.7", "ws": "^7.5.10" } }, "sha512-0BRqz/uCx3JdrOqiqgFhih/+hfTERaUfCZXFB52uMaZJrKaPRzHzMuqVsJC/V3pt7NozcNXGspjKiQEK+X7P2w=="],
 
@@ -65,6 +66,8 @@
     "eventsource": ["eventsource@2.0.2", "", {}, "sha512-IzUmBGPR3+oUG9dUeXynyNmf91/3zUSJg1lCktzKw47OXuhco54U3r9B7O4XX+Rb1Itm9OZ2b0RkTs10bICOxA=="],
 
     "fetch-cookie": ["fetch-cookie@2.2.0", "", { "dependencies": { "set-cookie-parser": "^2.4.8", "tough-cookie": "^4.0.0" } }, "sha512-h9AgfjURuCgA2+2ISl8GbavpUdR+WGAM2McW/ovn4tVccegp8ZqCKWSBR8uRdM8dDNlx5WdKRWxBYUwteLDCNQ=="],
+
+    "fflate": ["fflate@0.8.3", "", {}, "sha512-tbZNuJrLwGUp3zshBtdy4W+ORxZuIh8a5ilyIEQDC5rY1f3U20JMry0Ll3WBzU58EZKsEuJFXhb5gwv8CsPvgA=="],
 
     "is-docker": ["is-docker@3.0.0", "", { "bin": { "is-docker": "cli.js" } }, "sha512-eljcgEDlEns/7AXFosB5K/2nCM4P7FQPkGc/DWLy5rmFEWvZayGrik1d9/QIY5nJ4f9YsVvBkA6kJpHn9rISdQ=="],
 
