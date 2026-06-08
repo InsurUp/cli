@@ -28,7 +28,7 @@
     "format": "biome format --write src test"
   },
   "dependencies": {
-    "@insurup/sdk": "^0.1.31",
+    "@insurup/sdk": "^0.1.35",
     "@stricli/core": "^1.2.7",
     "fflate": "^0.8.3",
     "open": "^11.0.0",
