@@ -17,14 +17,14 @@ import { CliError } from '../shared/errors.ts';
 import { EXIT } from '../shared/exit-codes.ts';
 import { type GlobalFlags, globalFlags } from '../shared/flags.ts';
 
-type ConfigKey = 'auth-server' | 'base-url';
+type ConfigKey = 'auth-server' | 'base-url' | 'browser-client-id';
 type ValueSource = 'flag' | 'environment' | 'config' | 'default' | 'unset';
 
 interface ConfigEntry {
   readonly key: ConfigKey;
-  readonly outputKey: 'authServer' | 'baseUrl';
-  readonly envName: 'INSURUP_AUTH_SERVER' | 'INSURUP_API_URL';
-  readonly profileKey: 'apiBaseUrl' | 'authServer';
+  readonly outputKey: 'authServer' | 'baseUrl' | 'browserClientId';
+  readonly envName: 'INSURUP_AUTH_SERVER' | 'INSURUP_API_URL' | 'INSURUP_BROWSER_CLIENT_ID';
+  readonly profileKey: 'apiBaseUrl' | 'authServer' | 'browserClientId';
   value(config: ResolvedConfig): string | undefined;
   source(args: SourceArgs): ValueSource;
   normalize(value: string): string;
@@ -65,6 +65,19 @@ const CONFIG_ENTRIES: Record<ConfigKey, ConfigEntry> = {
     },
     normalize: normalizeUrlFor('base-url'),
   },
+  'browser-client-id': {
+    key: 'browser-client-id',
+    outputKey: 'browserClientId',
+    envName: 'INSURUP_BROWSER_CLIENT_ID',
+    profileKey: 'browserClientId',
+    value: (config) => config.browserClientId,
+    source: ({ env, profileConfig }) => {
+      if (env.INSURUP_BROWSER_CLIENT_ID !== undefined) return 'environment';
+      if (profileConfig.browserClientId !== undefined) return 'config';
+      return 'default';
+    },
+    normalize: normalizeClientIdFor('browser-client-id'),
+  },
 };
 
 const CONFIG_KEY_ALIASES: Record<string, ConfigKey> = {
@@ -77,6 +90,11 @@ const CONFIG_KEY_ALIASES: Record<string, ConfigKey> = {
   baseUrl: 'base-url',
   'api-base-url': 'base-url',
   apiBaseUrl: 'base-url',
+  'browser-client-id': 'browser-client-id',
+  browserClientId: 'browser-client-id',
+  'browser-oauth-client-id': 'browser-client-id',
+  'public-client-id': 'browser-client-id',
+  publicClientId: 'browser-client-id',
 };
 
 function normalizeUrlFor(key: ConfigKey): (raw: string) => string {
@@ -92,6 +110,14 @@ function normalizeUrlFor(key: ConfigKey): (raw: string) => string {
     if (url.protocol !== 'http:' && url.protocol !== 'https:') {
       throw new CliError(`${key} must use http or https`, EXIT.USAGE);
     }
+    return value;
+  };
+}
+
+function normalizeClientIdFor(key: ConfigKey): (raw: string) => string {
+  return (raw) => {
+    const value = raw.trim();
+    if (!value) throw new CliError(`${key} cannot be empty`, EXIT.USAGE);
     return value;
   };
 }

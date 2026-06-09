@@ -11,15 +11,15 @@ export const DEFAULT_SCOPES = ['openid', 'profile', 'offline_access', 'core-api'
 
 /**
  * The public, native OAuth client used for the interactive browser (authorization
- * code + PKCE) flow. Hardcoded — it is a public client that carries no secret, so
- * it is safe to ship. `--client-id` / `INSURUP_CLIENT_ID` are reserved for the
- * confidential M2M client and are ignored by browser login.
+ * code + PKCE) flow. It is a public client that carries no secret, so it is safe
+ * to ship. Profiles may override it with `browserClientId`.
  */
 export const BROWSER_CLIENT_ID = 'cli';
 
 /** Per-profile, non-secret settings persisted to the config file. */
 export interface ProfileConfig {
   clientId?: string;
+  browserClientId?: string;
   authServer?: string;
   apiBaseUrl?: string;
   scopes?: string[];
@@ -34,7 +34,10 @@ export interface ConfigFile {
 /** Fully-resolved effective configuration for a single invocation. */
 export interface ResolvedConfig {
   readonly profile: string;
+  /** Confidential M2M client id. */
   readonly clientId?: string;
+  /** Public browser-login client id. */
+  readonly browserClientId: string;
   readonly clientSecret?: string;
   readonly authServer: string;
   /** Explicit token endpoint; when set the SDK skips OIDC discovery. */
@@ -101,6 +104,8 @@ export function resolveConfig(args: {
   return {
     profile,
     clientId: args.flags.clientId ?? env.INSURUP_CLIENT_ID ?? profileCfg.clientId,
+    browserClientId:
+      env.INSURUP_BROWSER_CLIENT_ID ?? profileCfg.browserClientId ?? BROWSER_CLIENT_ID,
     clientSecret: env.INSURUP_CLIENT_SECRET,
     authServer:
       args.flags.authServer ??
