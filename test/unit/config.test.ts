@@ -34,7 +34,12 @@ describe('resolveProfileName', () => {
 describe('resolveConfig precedence', () => {
   test('flags beat env beat file beat defaults', () => {
     const cfg = resolveConfig({
-      flags: { ...baseFlags, clientId: 'flag-id', authServer: 'https://flag' },
+      flags: {
+        ...baseFlags,
+        clientId: 'flag-id',
+        authServer: 'https://flag',
+        baseUrl: 'https://flag-api',
+      },
       env: {
         INSURUP_CLIENT_ID: 'env-id',
         INSURUP_AUTH_SERVER: 'https://env',
@@ -44,7 +49,7 @@ describe('resolveConfig precedence', () => {
     });
     expect(cfg.clientId).toBe('flag-id');
     expect(cfg.authServer).toBe('https://flag');
-    expect(cfg.apiBaseUrl).toBe('https://env-api');
+    expect(cfg.apiBaseUrl).toBe('https://flag-api');
   });
 
   test('falls back to env then file then defaults', () => {

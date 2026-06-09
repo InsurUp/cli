@@ -100,6 +100,40 @@ describe('end-to-end command routing', () => {
     await rm(dir, { recursive: true, force: true });
   });
 
+  test('config set/get/unset base-url persists profile settings', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'insurup-config-'));
+    try {
+      const env = { XDG_CONFIG_HOME: dir };
+      const set = makeContext(env);
+      await run(
+        app,
+        ['config', 'set', 'base-url', 'https://api.example.test/v1', '--json'],
+        set.ctx,
+      );
+      expect(ok(set.exitCode())).toBe(true);
+      expect((await readConfigFile(env)).profiles?.default?.apiBaseUrl).toBe(
+        'https://api.example.test/v1',
+      );
+
+      const get = makeContext(env);
+      await run(app, ['config', 'get', 'base-url', '--json'], get.ctx);
+      expect(JSON.parse(get.stdout())).toEqual({
+        key: 'base-url',
+        name: 'baseUrl',
+        value: 'https://api.example.test/v1',
+        source: 'config',
+        env: 'INSURUP_API_URL',
+      });
+
+      const unset = makeContext(env);
+      await run(app, ['config', 'unset', 'base-url', '--json'], unset.ctx);
+      expect(ok(unset.exitCode())).toBe(true);
+      expect((await readConfigFile(env)).profiles?.default?.apiBaseUrl).toBeUndefined();
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   test('auth token without a session exits 3', async () => {
     const t = await runCli(['auth', 'token']);
     expect(t.exitCode()).toBe(3);
