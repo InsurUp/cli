@@ -38,7 +38,7 @@ brew install InsurUp/tap/cli
 ## Quick start
 
 ```bash
-# Browser login (authorization code + PKCE) — uses the built-in public client
+# Browser login (authorization code + PKCE) — uses the configured public client
 insurup auth login
 
 # …or machine-to-machine (great for CI)
@@ -61,11 +61,16 @@ insurup insurance companies
 insurup auth login
 ```
 
-Uses InsurUp's built-in public `cli` client — no client id or secret required.
-Opens your browser via a Pushed Authorization Request (RFC 9126), captures the
-redirect on a local loopback server, and stores the resulting tokens (with
-refresh) in the OS keychain. Use `--no-browser` on a headless box to print the
-URL instead.
+Uses InsurUp's public `cli` client by default — no client secret required. Opens
+your browser via a Pushed Authorization Request (RFC 9126), captures the redirect
+on a local loopback server, and stores the resulting tokens (with refresh) in the
+OS keychain. Use `--no-browser` on a headless box to print the URL instead.
+
+To use a different public OAuth client for browser login:
+
+```bash
+insurup config set browser-client-id <public-client-id>
+```
 
 ### Machine-to-machine (automation)
 
@@ -84,7 +89,8 @@ insurup customers list --json
 the client id, auth server, and scopes to the active profile, so later logins
 (and on-demand M2M auto-login) need no flags. It does not apply to browser login
 (passing it there is rejected) — browser tokens are always stored in the keychain
-regardless, and the public `cli` client is built in, so there is nothing to save.
+regardless. Configure the public browser client separately with
+`config set browser-client-id`.
 
 ### Commands
 
@@ -98,8 +104,10 @@ regardless, and the public `cli` client is built in, so there is nothing to save
 | `config show` | Show effective local CLI config |
 | `config set base-url <url>` | Persist an API base URL to the active profile |
 | `config set auth-server <url>` | Persist an authorization server URL to the active profile |
+| `config set browser-client-id <id>` | Persist the public browser OAuth client id to the active profile |
 | `config unset base-url` | Remove the profile API base URL |
 | `config unset auth-server` | Remove the profile authorization server URL |
+| `config unset browser-client-id` | Remove the profile public browser client id |
 
 ### Configuration & profiles
 
@@ -112,13 +120,16 @@ ever live in the OS keychain. Environment variables can also be supplied via a
 ```bash
 insurup config set base-url https://api.insurup.com
 insurup config set auth-server https://auth.insurup.com
+insurup config set browser-client-id cli
 insurup config get base-url
 insurup config get auth-server
+insurup config get browser-client-id
 ```
 
 | Env var | Meaning |
 | --- | --- |
-| `INSURUP_CLIENT_ID` | M2M (confidential) client id — browser login uses the built-in `cli` client |
+| `INSURUP_CLIENT_ID` | M2M (confidential) client id |
+| `INSURUP_BROWSER_CLIENT_ID` | Public browser-login client id (default `cli`) |
 | `INSURUP_CLIENT_SECRET` | M2M client secret |
 | `INSURUP_AUTH_SERVER` | Authorization server (default `https://auth.insurup.com`) |
 | `INSURUP_API_URL` | API base URL |

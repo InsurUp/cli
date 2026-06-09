@@ -3,6 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
+  BROWSER_CLIENT_ID,
   DEFAULT_SCOPES,
   readConfigFile,
   resolveConfig,
@@ -42,12 +43,22 @@ describe('resolveConfig precedence', () => {
       },
       env: {
         INSURUP_CLIENT_ID: 'env-id',
+        INSURUP_BROWSER_CLIENT_ID: 'env-browser',
         INSURUP_AUTH_SERVER: 'https://env',
         INSURUP_API_URL: 'https://env-api',
       },
-      file: { profiles: { default: { clientId: 'file-id', apiBaseUrl: 'https://file-api' } } },
+      file: {
+        profiles: {
+          default: {
+            clientId: 'file-id',
+            browserClientId: 'file-browser',
+            apiBaseUrl: 'https://file-api',
+          },
+        },
+      },
     });
     expect(cfg.clientId).toBe('flag-id');
+    expect(cfg.browserClientId).toBe('env-browser');
     expect(cfg.authServer).toBe('https://flag');
     expect(cfg.apiBaseUrl).toBe('https://flag-api');
   });
@@ -56,11 +67,18 @@ describe('resolveConfig precedence', () => {
     const cfg = resolveConfig({
       flags: baseFlags,
       env: { INSURUP_CLIENT_ID: 'env-id' },
-      file: { profiles: { default: { authServer: 'https://file-auth' } } },
+      file: {
+        profiles: { default: { authServer: 'https://file-auth', browserClientId: 'file-browser' } },
+      },
     });
     expect(cfg.clientId).toBe('env-id');
+    expect(cfg.browserClientId).toBe('file-browser');
     expect(cfg.authServer).toBe('https://file-auth');
     expect(cfg.scopes).toEqual([...DEFAULT_SCOPES]);
+  });
+
+  test('uses the default browser client id when none is configured', () => {
+    expect(resolveConfig({ flags: baseFlags, env: {} }).browserClientId).toBe(BROWSER_CLIENT_ID);
   });
 
   test('reads client secret only from env', () => {

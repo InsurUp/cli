@@ -1,12 +1,7 @@
 import type { DefaultInsurUpClient, InsurUpAuth, TokenProvider } from '@insurup/sdk';
 import { buildTokenProvider, createAuth, createClient } from './auth/factory.ts';
 import { getClientSecret } from './auth/keychain-storage.ts';
-import {
-  BROWSER_CLIENT_ID,
-  type ResolvedConfig,
-  readConfigFile,
-  resolveConfig,
-} from './config/config.ts';
+import { type ResolvedConfig, readConfigFile, resolveConfig } from './config/config.ts';
 import type { LocalContext } from './context.ts';
 import type { GlobalFlags } from './shared/flags.ts';
 
@@ -35,8 +30,8 @@ export async function createSession(ctx: LocalContext, flags: GlobalFlags): Prom
   const clientSecret = config.clientSecret ?? (await getClientSecret(config.profile)) ?? undefined;
   // A configured client secret means M2M: refresh/login uses the confidential
   // client id. Otherwise this is a browser session whose tokens were minted for
-  // the public `cli` client, so refreshes must use that same client id.
-  const clientId = clientSecret ? config.clientId : BROWSER_CLIENT_ID;
+  // the configured public client, so refreshes must use that same client id.
+  const clientId = clientSecret ? config.clientId : config.browserClientId;
   const auth = createAuth({ ...config, clientId });
   const getAccessToken = buildTokenProvider(config, auth, clientSecret);
   const client = createClient(config, getAccessToken);

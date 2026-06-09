@@ -6,7 +6,7 @@ import { DEFAULT_AUTH_SERVER } from '@insurup/sdk';
 import { run } from '@stricli/core';
 import { app } from '../../src/app.ts';
 import { getClientSecret, setSecretsBackend } from '../../src/auth/keychain-storage.ts';
-import { readConfigFile } from '../../src/config/config.ts';
+import { BROWSER_CLIENT_ID, readConfigFile } from '../../src/config/config.ts';
 import { makeContext, type TestContext } from '../helpers/context.ts';
 import { memorySecrets } from '../helpers/memory-secrets.ts';
 import { type MockServer, startMockServer } from '../helpers/mock-server.ts';
@@ -147,6 +147,25 @@ describe('end-to-end command routing', () => {
         env: 'INSURUP_AUTH_SERVER',
       });
 
+      const setBrowserClientId = makeContext(env);
+      await run(
+        app,
+        ['config', 'set', 'browser-client-id', 'public-cli', '--json'],
+        setBrowserClientId.ctx,
+      );
+      expect(ok(setBrowserClientId.exitCode())).toBe(true);
+      expect((await readConfigFile(env)).profiles?.default?.browserClientId).toBe('public-cli');
+
+      const getBrowserClientId = makeContext(env);
+      await run(app, ['config', 'get', 'browser-client-id', '--json'], getBrowserClientId.ctx);
+      expect(JSON.parse(getBrowserClientId.stdout())).toEqual({
+        key: 'browser-client-id',
+        name: 'browserClientId',
+        value: 'public-cli',
+        source: 'config',
+        env: 'INSURUP_BROWSER_CLIENT_ID',
+      });
+
       const unsetBaseUrl = makeContext(env);
       await run(app, ['config', 'unset', 'base-url', '--json'], unsetBaseUrl.ctx);
       expect(ok(unsetBaseUrl.exitCode())).toBe(true);
@@ -157,6 +176,11 @@ describe('end-to-end command routing', () => {
       expect(ok(unsetAuthServer.exitCode())).toBe(true);
       expect((await readConfigFile(env)).profiles?.default?.authServer).toBeUndefined();
 
+      const unsetBrowserClientId = makeContext(env);
+      await run(app, ['config', 'unset', 'browser-client-id', '--json'], unsetBrowserClientId.ctx);
+      expect(ok(unsetBrowserClientId.exitCode())).toBe(true);
+      expect((await readConfigFile(env)).profiles?.default?.browserClientId).toBeUndefined();
+
       const getDefaultAuthServer = makeContext(env);
       await run(app, ['config', 'get', 'auth-server', '--json'], getDefaultAuthServer.ctx);
       expect(JSON.parse(getDefaultAuthServer.stdout())).toEqual({
@@ -165,6 +189,20 @@ describe('end-to-end command routing', () => {
         value: DEFAULT_AUTH_SERVER,
         source: 'default',
         env: 'INSURUP_AUTH_SERVER',
+      });
+
+      const getDefaultBrowserClientId = makeContext(env);
+      await run(
+        app,
+        ['config', 'get', 'browser-client-id', '--json'],
+        getDefaultBrowserClientId.ctx,
+      );
+      expect(JSON.parse(getDefaultBrowserClientId.stdout())).toEqual({
+        key: 'browser-client-id',
+        name: 'browserClientId',
+        value: BROWSER_CLIENT_ID,
+        source: 'default',
+        env: 'INSURUP_BROWSER_CLIENT_ID',
       });
     } finally {
       await rm(dir, { recursive: true, force: true });

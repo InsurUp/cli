@@ -4,12 +4,7 @@ import { browserLogin } from '../../auth/browser-login.ts';
 import { createAuth } from '../../auth/factory.ts';
 import { getClientSecret, setClientSecret } from '../../auth/keychain-storage.ts';
 import { m2mLogin, m2mScopes } from '../../auth/m2m.ts';
-import {
-  BROWSER_CLIENT_ID,
-  type ResolvedConfig,
-  readConfigFile,
-  writeConfigFile,
-} from '../../config/config.ts';
+import { type ResolvedConfig, readConfigFile, writeConfigFile } from '../../config/config.ts';
 import type { LocalContext } from '../../context.ts';
 import { printData, printNote, printSuccess, runCommand } from '../../output/print.ts';
 import { loadConfig } from '../../session.ts';
@@ -112,9 +107,9 @@ export const loginCommand = buildCommand<LoginFlags, [], LocalContext>({
             EXIT.USAGE,
           );
         }
-        // Browser login always uses the hardcoded public `cli` client (PKCE, no
-        // secret); any configured M2M client id is irrelevant here.
-        const auth = createAuth({ ...config, clientId: BROWSER_CLIENT_ID });
+        // Browser login uses the configured public client (PKCE, no secret); any
+        // configured M2M client id is irrelevant here.
+        const auth = createAuth({ ...config, clientId: config.browserClientId });
         printNote(this, flags, 'Opening browser for sign-in…');
         tokens = await browserLogin(auth, {
           scopes,

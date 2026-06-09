@@ -19,6 +19,7 @@ export const statusCommand = buildCommand<GlobalFlags, [], LocalContext>({
         profile: config.profile,
         authServer: config.authServer,
         clientId: config.clientId ?? null,
+        browserClientId: config.browserClientId,
         authenticated: Boolean(tokens) && !expired,
         expiresAt: tokens?.expiresAt ? new Date(tokens.expiresAt).toISOString() : null,
         expired,

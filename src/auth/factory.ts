@@ -23,9 +23,9 @@ export function createAuth(config: ResolvedConfig): InsurUpAuth {
     (url) => url?.startsWith('http://'),
   );
   return createInsurUpAuth({
-    // Fall back to the public browser client when no confidential (M2M) client
-    // id is configured, so token refresh for a browser session always works.
-    clientId: config.clientId || BROWSER_CLIENT_ID,
+    // Fall back to the public browser client when no confidential (M2M) client id
+    // is configured, so token refresh for a browser session always works.
+    clientId: config.clientId || config.browserClientId || BROWSER_CLIENT_ID,
     authServer: config.authServer,
     scopes: config.scopes as readonly InsurUpScope[],
     storage: keychainTokenStorage(config.profile),
