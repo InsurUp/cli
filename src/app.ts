@@ -6,6 +6,7 @@ import { agentRoutes } from './commands/agents.ts';
 import { agentUserRoutes } from './commands/agentUsers.ts';
 import { authRoutes } from './commands/auth/index.ts';
 import { caseRoutes } from './commands/cases.ts';
+import { configRoutes } from './commands/config.ts';
 import { coverageRoutes } from './commands/coverage.ts';
 import { customerRoutes } from './commands/customers.ts';
 import { fileRoutes } from './commands/files.ts';
@@ -29,6 +30,7 @@ const root = buildRouteMap<string, LocalContext>({
   },
   routes: {
     auth: authRoutes,
+    config: configRoutes,
     customers: customerRoutes,
     vehicles: vehicleRoutes,
     properties: propertyRoutes,

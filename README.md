@@ -95,6 +95,11 @@ regardless, and the public `cli` client is built in, so there is nothing to save
 | `auth whoami` | Show the authenticated identity |
 | `auth token` | Print a valid access token (`$(insurup auth token)`) |
 | `auth logout [--forget-secret]` | Clear the stored session |
+| `config show` | Show effective local CLI config |
+| `config set base-url <url>` | Persist an API base URL to the active profile |
+| `config set auth-server <url>` | Persist an authorization server URL to the active profile |
+| `config unset base-url` | Remove the profile API base URL |
+| `config unset auth-server` | Remove the profile authorization server URL |
 
 ### Configuration & profiles
 
@@ -103,6 +108,13 @@ Use `--profile <name>` (or `INSURUP_PROFILE`) to keep multiple environments side
 by side. Non-secret settings live in `~/.config/insurup/config.json`; secrets only
 ever live in the OS keychain. Environment variables can also be supplied via a
 `.env` file in the working directory — the Bun runtime auto-loads it.
+
+```bash
+insurup config set base-url https://api.insurup.com
+insurup config set auth-server https://auth.insurup.com
+insurup config get base-url
+insurup config get auth-server
+```
 
 | Env var | Meaning |
 | --- | --- |
