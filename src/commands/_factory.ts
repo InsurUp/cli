@@ -13,6 +13,9 @@ import { type ApiScope, withClient } from './_shared.ts';
 
 type ExtraFlags = Record<string, unknown>;
 
+/** A positional spec: a plain brief (placeholder `id`) or a brief with an explicit placeholder. */
+export type ArgSpec = string | { readonly brief: string; readonly placeholder: string };
+
 function paramsFor<F extends GlobalFlags, A extends readonly unknown[]>(
   extraFlags: ExtraFlags,
   positional?: unknown,
@@ -25,11 +28,14 @@ function paramsFor<F extends GlobalFlags, A extends readonly unknown[]>(
   >;
 }
 
-function tuple(...briefs: string[]): unknown {
-  return {
-    kind: 'tuple',
-    parameters: briefs.map((brief) => ({ brief, parse: String, placeholder: 'id' })),
-  };
+function argOf(spec: ArgSpec, optional = false): Record<string, unknown> {
+  const { brief, placeholder } =
+    typeof spec === 'string' ? { brief: spec, placeholder: 'id' } : spec;
+  return { brief, parse: String, placeholder, ...(optional ? { optional: true } : {}) };
+}
+
+function tuple(...specs: ArgSpec[]): unknown {
+  return { kind: 'tuple', parameters: specs.map((spec) => argOf(spec)) };
 }
 
 /** Command with no positional arguments. */
@@ -50,7 +56,7 @@ export function cmd0<F extends GlobalFlags = GlobalFlags>(
 /** Command with one positional argument (e.g. an id). */
 export function cmd1<F extends GlobalFlags = GlobalFlags>(
   brief: string,
-  argBrief: string,
+  argBrief: ArgSpec,
   extraFlags: ExtraFlags,
   run: (scope: ApiScope<F>, arg: string) => unknown | Promise<unknown>,
 ): Command<LocalContext> {
@@ -58,6 +64,23 @@ export function cmd1<F extends GlobalFlags = GlobalFlags>(
     docs: { brief },
     parameters: paramsFor<F, [string]>(extraFlags, tuple(argBrief)),
     func: function (this: LocalContext, flags: F, arg: string): Promise<void> {
+      return withClient(this, flags, (scope) => run(scope, arg));
+    },
+  });
+}
+
+/** Command with one optional positional argument (e.g. a directory defaulting to cwd). */
+export function cmd1Optional<F extends GlobalFlags = GlobalFlags>(
+  brief: string,
+  argBrief: ArgSpec,
+  extraFlags: ExtraFlags,
+  run: (scope: ApiScope<F>, arg: string | undefined) => unknown | Promise<unknown>,
+): Command<LocalContext> {
+  const positional = { kind: 'tuple', parameters: [argOf(argBrief, true)] };
+  return buildCommand<F, [string?], LocalContext>({
+    docs: { brief },
+    parameters: paramsFor<F, [string?]>(extraFlags, positional),
+    func: function (this: LocalContext, flags: F, arg?: string): Promise<void> {
       return withClient(this, flags, (scope) => run(scope, arg));
     },
   });

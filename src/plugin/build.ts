@@ -119,7 +119,8 @@ export async function detectPackageManager(dir: string): Promise<PackageManager 
   return undefined;
 }
 
-async function readManifest(dir: string): Promise<PluginManifest> {
+/** Read and validate `plugin.json` from a plugin project directory. */
+export async function readManifest(dir: string): Promise<PluginManifest> {
   const file = Bun.file(join(dir, 'plugin.json'));
   if (!(await file.exists())) {
     throw new CliError(`No plugin.json found in ${dir}`, EXIT.USAGE);

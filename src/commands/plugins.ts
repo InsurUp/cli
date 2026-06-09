@@ -1,5 +1,5 @@
 import { basename } from 'node:path';
-import type { PluginHook } from '@insurup/sdk';
+import type { DefaultInsurUpClient, PluginHook } from '@insurup/sdk';
 import {
   buildCommand,
   buildRouteMap,
@@ -17,13 +17,14 @@ import {
   type Language,
   PACKAGE_MANAGERS,
   type PackageManager,
+  readManifest,
 } from '../plugin/build.ts';
 import { scaffoldPlugin } from '../plugin/scaffold.ts';
 import { CliError } from '../shared/errors.ts';
 import { EXIT } from '../shared/exit-codes.ts';
 import { type GlobalFlags, globalFlags } from '../shared/flags.ts';
 import { promptText, select } from '../shared/prompt.ts';
-import { cmd0, cmd1 } from './_factory.ts';
+import { cmd0, cmd1, cmd1Optional } from './_factory.ts';
 import { type DataFlags, dataFlag, readData } from './_shared.ts';
 
 // ── flag parsers / specs / types ────────────────────────────────────────────
@@ -80,10 +81,15 @@ type InitFlags = PmFlags & {
   readonly bundler?: Bundler;
 };
 
-const versionFlag = {
-  version: { kind: 'parsed', parse: String, brief: 'Semantic version to activate' },
+const activateFlags = {
+  plugin: {
+    kind: 'parsed',
+    parse: String,
+    brief: 'Plugin package name (plugin.json id) or UUID (default: read ./plugin.json)',
+    optional: true,
+  },
 } as const;
-type VersionFlags = GlobalFlags & { readonly version: string };
+type ActivateFlags = GlobalFlags & { readonly plugin?: string };
 
 const logsFlags = {
   limit: {
@@ -103,7 +109,7 @@ type PriorityFlags = GlobalFlags & { readonly value: number };
 
 const deployFlags = {
   ...pmFlag,
-  activate: { kind: 'boolean', brief: 'Activate the uploaded version', default: false },
+  noActivate: { kind: 'boolean', brief: 'Skip activating the uploaded version', default: false },
   config: {
     kind: 'parsed',
     parse: String,
@@ -111,7 +117,7 @@ const deployFlags = {
     optional: true,
   },
 } as const;
-type DeployFlags = PmFlags & { readonly activate: boolean; readonly config?: string };
+type DeployFlags = PmFlags & { readonly noActivate: boolean; readonly config?: string };
 
 const PM_CHOICES = PACKAGE_MANAGERS.map((value) => ({ value, label: value }));
 const BUNDLER_CHOICES = [
@@ -143,26 +149,66 @@ function localDirCommand<F extends GlobalFlags>(
   brief: string,
   extraFlags: Record<string, unknown>,
   run: (ctx: LocalContext, flags: F, dir: string) => Promise<void>,
+  { optionalDir = false }: { optionalDir?: boolean } = {},
 ): Command<LocalContext> {
   // The positional spec is assembled then cast once, exactly as in `_factory.ts`.
   const parameters = {
     flags: { ...globalFlags, ...extraFlags },
     positional: {
       kind: 'tuple',
-      parameters: [{ brief: 'Plugin directory', parse: String, placeholder: 'dir' }],
+      parameters: [
+        optionalDir
+          ? {
+              brief: 'Plugin directory (default: current directory)',
+              parse: String,
+              placeholder: 'dir',
+              optional: true,
+            }
+          : { brief: 'Plugin directory', parse: String, placeholder: 'dir' },
+      ],
     },
-  } as unknown as TypedCommandParameters<F, [string], LocalContext>;
-  return buildCommand<F, [string], LocalContext>({
+  } as unknown as TypedCommandParameters<F, [string?], LocalContext>;
+  return buildCommand<F, [string?], LocalContext>({
     docs: { brief },
     parameters,
-    func: function (this: LocalContext, flags: F, dir: string): Promise<void> {
-      return runCommand(this, flags, () => run(this, flags, dir));
+    func: function (this: LocalContext, flags: F, dir?: string): Promise<void> {
+      return runCommand(this, flags, () => run(this, flags, dir ?? '.'));
     },
   });
 }
 
 const pmOption = (pm?: PackageManager): { packageManager?: PackageManager } =>
   pm ? { packageManager: pm } : {};
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Resolve a plugin reference to its server id: a UUID is used as-is, a package name is looked up by
+ * slug among the installed plugins, and when absent the name comes from `./plugin.json`.
+ */
+async function resolvePlugin(
+  client: DefaultInsurUpClient,
+  ref: string | undefined,
+): Promise<{ id: string; label: string }> {
+  if (ref !== undefined && UUID_RE.test(ref)) return { id: ref, label: ref };
+
+  let name = ref;
+  if (name === undefined) {
+    try {
+      name = (await readManifest('.')).id;
+    } catch {
+      throw new CliError(
+        'No plugin.json in the current directory. Run from a plugin directory or pass --plugin <name|uuid>.',
+        EXIT.USAGE,
+      );
+    }
+  }
+
+  const plugins = await take(client.plugins.getPlugins());
+  const match = plugins.find((plugin) => plugin.slug === name);
+  if (!match) throw new CliError(`No installed plugin named "${name}"`, EXIT.USAGE);
+  return { id: match.id, label: name };
+}
 
 // ── API commands ────────────────────────────────────────────────────────────
 
@@ -185,13 +231,14 @@ const logs = cmd1<LogsFlags>(
     ),
 );
 
-const activate = cmd1<VersionFlags>(
+const activate = cmd1<ActivateFlags>(
   'Activate an installed version (also enables the plugin)',
-  'Plugin id',
-  versionFlag,
-  async ({ client, ctx, flags }, id) => {
-    await take(client.plugins.activatePlugin(id, { version: flags.version }));
-    printSuccess(ctx, flags, `Activated ${id} @ ${flags.version}`);
+  { brief: 'Semantic version to activate (e.g. 1.2.0)', placeholder: 'version' },
+  activateFlags,
+  async ({ client, ctx, flags }, version) => {
+    const { id, label } = await resolvePlugin(client, flags.plugin);
+    await take(client.plugins.activatePlugin(id, { version }));
+    printSuccess(ctx, flags, `Activated ${label} @ ${version}`);
   },
 );
 
@@ -273,7 +320,7 @@ const init = localDirCommand<InitFlags>(
     printNote(
       ctx,
       flags,
-      `Next: cd ${dir} && ${packageManager} install, then \`insurup plugins deploy ${dir} --activate\`.`,
+      `Next: cd ${dir} && ${packageManager} install, then \`insurup plugins deploy\`.`,
     );
     printSuccess(ctx, flags, `Created plugin at ${dir}`);
   },
@@ -296,15 +343,17 @@ const build = localDirCommand<PmFlags>(
     );
     printSuccess(ctx, flags, `Wrote ${out}`);
   },
+  { optionalDir: true },
 );
 
 // ── deploy (build + upload + optional activate/config) ──────────────────────
 
-const deploy = cmd1<DeployFlags>(
-  'Build a plugin and deploy it (upload, then optionally configure + activate)',
-  'Plugin directory',
+const deploy = cmd1Optional<DeployFlags>(
+  'Build a plugin and deploy it (upload + activate, then optionally configure)',
+  { brief: 'Plugin directory (default: current directory)', placeholder: 'dir' },
   deployFlags,
-  async ({ client, ctx, flags }, dir) => {
+  async ({ client, ctx, flags }, dirArg) => {
+    const dir = dirArg ?? '.';
     const { manifest, zip } = await buildPlugin(dir, pmOption(flags.packageManager));
     printNote(ctx, flags, `Uploading ${manifest.id}@${manifest.version}…`);
 
@@ -317,9 +366,12 @@ const deploy = cmd1<DeployFlags>(
 
     // Activate before configuring: config is validated against (and stored on) the
     // active version, so a version must be selected first.
-    if (flags.activate) {
+    const activateVersion = !flags.noActivate;
+    if (activateVersion) {
       await take(client.plugins.activatePlugin(detail.id, { version: manifest.version }));
       printNote(ctx, flags, `Activated ${manifest.version}.`);
+    } else {
+      printNote(ctx, flags, 'Skipped activation (--no-activate).');
     }
 
     if (flags.config !== undefined) {
@@ -330,7 +382,7 @@ const deploy = cmd1<DeployFlags>(
 
     printSuccess(ctx, flags, `Deployed ${manifest.id}@${manifest.version} (${detail.id})`);
     // Re-fetch so the returned detail reflects the post-activate/config state.
-    return flags.activate || flags.config !== undefined
+    return activateVersion || flags.config !== undefined
       ? await take(client.plugins.getPluginById(detail.id))
       : detail;
   },
