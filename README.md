@@ -97,7 +97,9 @@ regardless, and the public `cli` client is built in, so there is nothing to save
 | `auth logout [--forget-secret]` | Clear the stored session |
 | `config show` | Show effective local CLI config |
 | `config set base-url <url>` | Persist an API base URL to the active profile |
+| `config set auth-server <url>` | Persist an authorization server URL to the active profile |
 | `config unset base-url` | Remove the profile API base URL |
+| `config unset auth-server` | Remove the profile authorization server URL |
 
 ### Configuration & profiles
 
@@ -109,7 +111,9 @@ ever live in the OS keychain. Environment variables can also be supplied via a
 
 ```bash
 insurup config set base-url https://api.insurup.com
+insurup config set auth-server https://auth.insurup.com
 insurup config get base-url
+insurup config get auth-server
 ```
 
 | Env var | Meaning |

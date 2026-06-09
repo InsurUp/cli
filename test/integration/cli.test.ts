@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { DEFAULT_AUTH_SERVER } from '@insurup/sdk';
 import { run } from '@stricli/core';
 import { app } from '../../src/app.ts';
 import { getClientSecret, setSecretsBackend } from '../../src/auth/keychain-storage.ts';
@@ -100,17 +101,17 @@ describe('end-to-end command routing', () => {
     await rm(dir, { recursive: true, force: true });
   });
 
-  test('config set/get/unset base-url persists profile settings', async () => {
+  test('config set/get/unset persists profile settings', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'insurup-config-'));
     try {
       const env = { XDG_CONFIG_HOME: dir };
-      const set = makeContext(env);
+      const setBaseUrl = makeContext(env);
       await run(
         app,
         ['config', 'set', 'base-url', 'https://api.example.test/v1', '--json'],
-        set.ctx,
+        setBaseUrl.ctx,
       );
-      expect(ok(set.exitCode())).toBe(true);
+      expect(ok(setBaseUrl.exitCode())).toBe(true);
       expect((await readConfigFile(env)).profiles?.default?.apiBaseUrl).toBe(
         'https://api.example.test/v1',
       );
@@ -125,10 +126,46 @@ describe('end-to-end command routing', () => {
         env: 'INSURUP_API_URL',
       });
 
-      const unset = makeContext(env);
-      await run(app, ['config', 'unset', 'base-url', '--json'], unset.ctx);
-      expect(ok(unset.exitCode())).toBe(true);
+      const setAuthServer = makeContext(env);
+      await run(
+        app,
+        ['config', 'set', 'auth-server', 'https://auth.example.test', '--json'],
+        setAuthServer.ctx,
+      );
+      expect(ok(setAuthServer.exitCode())).toBe(true);
+      expect((await readConfigFile(env)).profiles?.default?.authServer).toBe(
+        'https://auth.example.test',
+      );
+
+      const getAuthServer = makeContext(env);
+      await run(app, ['config', 'get', 'auth-server', '--json'], getAuthServer.ctx);
+      expect(JSON.parse(getAuthServer.stdout())).toEqual({
+        key: 'auth-server',
+        name: 'authServer',
+        value: 'https://auth.example.test',
+        source: 'config',
+        env: 'INSURUP_AUTH_SERVER',
+      });
+
+      const unsetBaseUrl = makeContext(env);
+      await run(app, ['config', 'unset', 'base-url', '--json'], unsetBaseUrl.ctx);
+      expect(ok(unsetBaseUrl.exitCode())).toBe(true);
       expect((await readConfigFile(env)).profiles?.default?.apiBaseUrl).toBeUndefined();
+
+      const unsetAuthServer = makeContext(env);
+      await run(app, ['config', 'unset', 'auth-server', '--json'], unsetAuthServer.ctx);
+      expect(ok(unsetAuthServer.exitCode())).toBe(true);
+      expect((await readConfigFile(env)).profiles?.default?.authServer).toBeUndefined();
+
+      const getDefaultAuthServer = makeContext(env);
+      await run(app, ['config', 'get', 'auth-server', '--json'], getDefaultAuthServer.ctx);
+      expect(JSON.parse(getDefaultAuthServer.stdout())).toEqual({
+        key: 'auth-server',
+        name: 'authServer',
+        value: DEFAULT_AUTH_SERVER,
+        source: 'default',
+        env: 'INSURUP_AUTH_SERVER',
+      });
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

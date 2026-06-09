@@ -17,14 +17,14 @@ import { CliError } from '../shared/errors.ts';
 import { EXIT } from '../shared/exit-codes.ts';
 import { type GlobalFlags, globalFlags } from '../shared/flags.ts';
 
-type ConfigKey = 'base-url';
-type ValueSource = 'flag' | 'environment' | 'config' | 'unset';
+type ConfigKey = 'auth-server' | 'base-url';
+type ValueSource = 'flag' | 'environment' | 'config' | 'default' | 'unset';
 
 interface ConfigEntry {
   readonly key: ConfigKey;
-  readonly outputKey: 'baseUrl';
-  readonly envName: 'INSURUP_API_URL';
-  readonly profileKey: 'apiBaseUrl';
+  readonly outputKey: 'authServer' | 'baseUrl';
+  readonly envName: 'INSURUP_AUTH_SERVER' | 'INSURUP_API_URL';
+  readonly profileKey: 'apiBaseUrl' | 'authServer';
   value(config: ResolvedConfig): string | undefined;
   source(args: SourceArgs): ValueSource;
   normalize(value: string): string;
@@ -37,6 +37,20 @@ interface SourceArgs {
 }
 
 const CONFIG_ENTRIES: Record<ConfigKey, ConfigEntry> = {
+  'auth-server': {
+    key: 'auth-server',
+    outputKey: 'authServer',
+    envName: 'INSURUP_AUTH_SERVER',
+    profileKey: 'authServer',
+    value: (config) => config.authServer,
+    source: ({ flags, env, profileConfig }) => {
+      if (flags.authServer !== undefined) return 'flag';
+      if (env.INSURUP_AUTH_SERVER !== undefined) return 'environment';
+      if (profileConfig.authServer !== undefined) return 'config';
+      return 'default';
+    },
+    normalize: normalizeUrlFor('auth-server'),
+  },
   'base-url': {
     key: 'base-url',
     outputKey: 'baseUrl',
@@ -49,30 +63,37 @@ const CONFIG_ENTRIES: Record<ConfigKey, ConfigEntry> = {
       if (profileConfig.apiBaseUrl !== undefined) return 'config';
       return 'unset';
     },
-    normalize: normalizeUrl,
+    normalize: normalizeUrlFor('base-url'),
   },
 };
 
 const CONFIG_KEY_ALIASES: Record<string, ConfigKey> = {
+  'auth-server': 'auth-server',
+  authServer: 'auth-server',
+  'auth-server-url': 'auth-server',
+  'authorization-server': 'auth-server',
+  authorizationServer: 'auth-server',
   'base-url': 'base-url',
   baseUrl: 'base-url',
   'api-base-url': 'base-url',
   apiBaseUrl: 'base-url',
 };
 
-function normalizeUrl(raw: string): string {
-  const value = raw.trim();
-  if (!value) throw new CliError('base-url cannot be empty', EXIT.USAGE);
-  let url: URL;
-  try {
-    url = new URL(value);
-  } catch {
-    throw new CliError('base-url must be a valid absolute URL', EXIT.USAGE);
-  }
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-    throw new CliError('base-url must use http or https', EXIT.USAGE);
-  }
-  return value;
+function normalizeUrlFor(key: ConfigKey): (raw: string) => string {
+  return (raw) => {
+    const value = raw.trim();
+    if (!value) throw new CliError(`${key} cannot be empty`, EXIT.USAGE);
+    let url: URL;
+    try {
+      url = new URL(value);
+    } catch {
+      throw new CliError(`${key} must be a valid absolute URL`, EXIT.USAGE);
+    }
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      throw new CliError(`${key} must use http or https`, EXIT.USAGE);
+    }
+    return value;
+  };
 }
 
 function parseConfigKey(raw: string): ConfigKey {
