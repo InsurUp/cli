@@ -24,14 +24,22 @@ export interface BrowserLoginOptions {
   readonly deps?: BrowserLoginDeps;
 }
 
-function timeout(ms: number): Promise<never> {
-  return new Promise((_resolve, reject) => {
-    setTimeout(
+interface Timeout {
+  readonly promise: Promise<never>;
+  /** Clear the pending timer so it stops keeping the event loop alive. */
+  readonly cancel: () => void;
+}
+
+function timeout(ms: number): Timeout {
+  let handle: ReturnType<typeof setTimeout>;
+  const promise = new Promise<never>((_resolve, reject) => {
+    handle = setTimeout(
       () =>
         reject(new CliError(`Authentication timed out after ${Math.round(ms / 1000)}s`, EXIT.AUTH)),
       ms,
     );
   });
+  return { promise, cancel: () => clearTimeout(handle) };
 }
 
 /**
@@ -64,10 +72,15 @@ export async function browserLogin(
       });
     }
 
-    const callback = await Promise.race<CallbackResult>([
-      server.result,
-      timeout(options.timeoutMs ?? DEFAULT_TIMEOUT_MS),
-    ]);
+    const deadline = timeout(options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+    let callback: CallbackResult;
+    try {
+      callback = await Promise.race<CallbackResult>([server.result, deadline.promise]);
+    } finally {
+      // Clear the pending timer; otherwise it keeps the event loop alive and
+      // the process hangs until the full timeout elapses (or Ctrl-C).
+      deadline.cancel();
+    }
 
     if (callback.error) {
       const detail = callback.errorDescription ? ` - ${callback.errorDescription}` : '';
